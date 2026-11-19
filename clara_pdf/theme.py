@@ -1,14 +1,16 @@
-"""浅色 / 深色主题样式表。"""
+"""浅色 / 深色主题样式表与调色板。"""
 
 from __future__ import annotations
+
+from PySide6.QtGui import QColor, QPalette
 
 ACCENT = "#2b579a"          # Clara 蓝
 ACCENT_PRESSED = "#1f4276"
 
 
-def build_stylesheet(dark: bool = False) -> str:
+def _colors(dark: bool) -> dict[str, str]:
     if dark:
-        c = {
+        return {
             "win": "#1b1c1e",
             "panel": "#232528",
             "card": "#26282b",
@@ -22,21 +24,70 @@ def build_stylesheet(dark: bool = False) -> str:
             "input": "#1f2124",
             "shadow": "#16171a",
         }
-    else:
-        c = {
-            "win": "#f2f3f5",
-            "panel": "#ffffff",
-            "card": "#ffffff",
-            "border": "#e3e5e8",
-            "text": "#1f2328",
-            "subtext": "#6b7280",
-            "accent": ACCENT,
-            "accent_pressed": ACCENT_PRESSED,
-            "accent_light": "#eaf1fb",
-            "hover": "#f3f6fa",
-            "input": "#ffffff",
-            "shadow": "#d8dde3",
-        }
+    return {
+        "win": "#f2f3f5",
+        "panel": "#ffffff",
+        "card": "#ffffff",
+        "border": "#e3e5e8",
+        "text": "#1f2328",
+        "subtext": "#6b7280",
+        "accent": ACCENT,
+        "accent_pressed": ACCENT_PRESSED,
+        "accent_light": "#eaf1fb",
+        "hover": "#f3f6fa",
+        "input": "#ffffff",
+        "shadow": "#d8dde3",
+    }
+
+
+def build_palette(dark: bool = False) -> QPalette:
+    """显式调色板：高亮、链接等固定使用 Clara 蓝，不跟随系统主题（避免出现绿色）。"""
+    c = _colors(dark)
+    palette = QPalette()
+    window = QColor(c["win"])
+    base = QColor(c["input"])
+    card = QColor(c["card"])
+    text = QColor(c["text"])
+    subtext = QColor(c["subtext"])
+    border = QColor(c["border"])
+    accent = QColor(c["accent"])
+    white = QColor("#ffffff")
+
+    palette.setColor(QPalette.ColorRole.Window, window)
+    palette.setColor(QPalette.ColorRole.WindowText, text)
+    palette.setColor(QPalette.ColorRole.Base, base)
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(c["hover"]))
+    palette.setColor(QPalette.ColorRole.Text, text)
+    palette.setColor(QPalette.ColorRole.PlaceholderText, subtext)
+    palette.setColor(QPalette.ColorRole.Button, card)
+    palette.setColor(QPalette.ColorRole.ButtonText, text)
+    palette.setColor(QPalette.ColorRole.BrightText, white)
+    palette.setColor(QPalette.ColorRole.Highlight, accent)
+    palette.setColor(QPalette.ColorRole.HighlightedText, white)
+    palette.setColor(QPalette.ColorRole.Link, accent)
+    palette.setColor(QPalette.ColorRole.LinkVisited, QColor(c["accent_pressed"]))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, card)
+    palette.setColor(QPalette.ColorRole.ToolTipText, text)
+    palette.setColor(QPalette.ColorRole.Mid, border)
+    palette.setColor(QPalette.ColorRole.Midlight, border)
+    palette.setColor(QPalette.ColorRole.Dark, QColor(c["shadow"]))
+    palette.setColor(QPalette.ColorRole.Light, QColor("#ffffff") if not dark else border)
+
+    accent_role = getattr(QPalette.ColorRole, "Accent", None)
+    if accent_role is not None:
+        palette.setColor(accent_role, accent)
+
+    disabled = QPalette.ColorGroup.Disabled
+    palette.setColor(disabled, QPalette.ColorRole.WindowText, subtext)
+    palette.setColor(disabled, QPalette.ColorRole.Text, subtext)
+    palette.setColor(disabled, QPalette.ColorRole.ButtonText, subtext)
+    palette.setColor(disabled, QPalette.ColorRole.Highlight, border)
+    palette.setColor(disabled, QPalette.ColorRole.HighlightedText, subtext)
+    return palette
+
+
+def build_stylesheet(dark: bool = False) -> str:
+    c = _colors(dark)
 
     return f"""
     QMainWindow, QDialog {{

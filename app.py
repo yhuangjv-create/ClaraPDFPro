@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from clara_pdf import APP_NAME, ORG_NAME, __version__
 from clara_pdf.icons import make_app_icon
+from clara_pdf.theme import build_palette
 
 
 def main() -> int:
@@ -25,6 +26,8 @@ def main() -> int:
     app.setOrganizationName(ORG_NAME)
     app.setApplicationVersion(__version__)
     app.setWindowIcon(make_app_icon())
+    # 固定使用 Fusion 风格 + 自有调色板，避免跟随系统主题出现绿色元素
+    app.setStyle("Fusion")
 
     font = app.font()
     font.setFamily("Microsoft YaHei UI")
@@ -35,6 +38,7 @@ def main() -> int:
     from clara_pdf.settings import Settings
 
     settings = Settings()
+    app.setPalette(build_palette(settings.dark_mode))
     install_qt_translator(settings.language)
 
     from clara_pdf.main_window import MainWindow

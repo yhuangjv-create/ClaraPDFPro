@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import sys
+
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -27,7 +30,7 @@ from .pages import (
     SecurityPage,
 )
 from .settings import Settings
-from .theme import build_stylesheet
+from .theme import build_palette, build_stylesheet
 
 _NAV = (
     ("convert", "nav.convert", ConvertPage),
@@ -170,9 +173,40 @@ class MainWindow(QMainWindow):
         dark = self.settings.dark_mode
         app = QApplication.instance()
         if app is not None:
+            app.setPalette(build_palette(dark))
             app.setStyleSheet(build_stylesheet(dark))
+        self._apply_frame_theme()
         label_key = "common.light" if dark else "common.dark"
         self.theme_btn.setText(self.i18n.t(label_key))
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._apply_frame_theme()
+
+    def _apply_frame_theme(self) -> None:
+        """固定 Windows 标题栏颜色，避免被系统强调色（可能是绿色）染色。"""
+        if sys.platform != "win32" or not self.isVisible():
+            return
+        try:
+            import ctypes
+
+            hwnd = int(self.winId())
+            dwm = ctypes.windll.dwmapi
+            dwm.DwmSetWindowAttribute.argtypes = [
+                ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_uint,
+            ]
+            dark = ctypes.c_int(1 if self.settings.dark_mode else 0)
+            dwm.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark), ctypes.sizeof(dark))
+
+            palette = build_palette(self.settings.dark_mode)
+            window = palette.color(QPalette.ColorRole.Window)
+            text = palette.color(QPalette.ColorRole.WindowText)
+            caption = ctypes.c_uint(window.red() | (window.green() << 8) | (window.blue() << 16))
+            caption_text = ctypes.c_uint(text.red() | (text.green() << 8) | (text.blue() << 16))
+            dwm.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(caption), ctypes.sizeof(caption))
+            dwm.DwmSetWindowAttribute(hwnd, 36, ctypes.byref(caption_text), ctypes.sizeof(caption_text))
+        except Exception:
+            pass
 
     def toggle_theme(self) -> None:
         self.settings.dark_mode = not self.settings.dark_mode
