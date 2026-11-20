@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.1-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.2-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.1** — Removed every green tone from the interface.
+> **Latest release: v1.0.2** — PDF→Word now preserves colors, fonts, shading and table styling.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -98,7 +98,7 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.0 is archived at `ClaraPDFPro_Backups\1.0.0_界面去除所有绿色元素`. The next backup will be created when v1.0.2 is prepared.
+> v1.0.1 is archived at `ClaraPDFPro_Backups\1.0.1_PDF转Word保留颜色字体底色与表格样式`. The next backup will be created when v1.0.3 is prepared.
 
 ## Roadmap
 
@@ -110,6 +110,14 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.2 — 2026-11-19 — PDF→Word style fidelity
+
+- Preserve text color, font family (including monospace code), bold and italic for every run
+- Preserve paragraph and inline background shading (code blocks, inline code, callouts)
+- Keep table cell shading, drop the hard black grid, and use the original column widths
+- Rebuild horizontal separators, bullet markers and hanging indents
+- Use the PDF's real line heights and page margins for closer spacing
 
 ### v1.0.1 — 2026-11-19 — No green colors
 
@@ -143,7 +151,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.1** — 移除界面中的全部绿色。
+> **最新版本：v1.0.2** — PDF 转 Word 可保留颜色、字体与底色。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -233,7 +241,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.0 已备份至 `ClaraPDFPro_Backups\1.0.0_界面去除所有绿色元素`，准备 v1.0.2 时创建下一份备份。
+> v1.0.1 已备份至 `ClaraPDFPro_Backups\1.0.1_PDF转Word保留颜色字体底色与表格样式`，准备 v1.0.3 时创建下一份备份。
 
 ## 后续计划
 
@@ -245,6 +253,14 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.2 — 2026-11-19 — PDF 转 Word 样式还原
+
+- 逐段保留文字颜色、字体（含等宽代码字体）、粗体与斜体
+- 保留段落与行内底色（代码块、行内代码、提示块）
+- 保留表格单元格底色，去掉生硬黑框，并按原 PDF 列宽排版
+- 还原横向分割线、项目符号与悬挂缩进
+- 使用 PDF 实际行高与页边距，间距更接近原文
 
 ### v1.0.1 — 2026-11-19 — 去除绿色
 
