@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.2-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.3-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.2** — PDF→Word now preserves colors, fonts, shading and table styling.
+> **Latest release: v1.0.3** — More accurate table boundaries, tree-diagram glyphs and true line spacing.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -98,7 +98,7 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.1 is archived at `ClaraPDFPro_Backups\1.0.1_PDF转Word保留颜色字体底色与表格样式`. The next backup will be created when v1.0.3 is prepared.
+> v1.0.2 is archived at `ClaraPDFPro_Backups\1.0.2_PDF转Word修复表格识别与行距页边距还原`. The next backup will be created when v1.0.4 is prepared.
 
 ## Roadmap
 
@@ -110,6 +110,14 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.3 — 2026-11-20 — Accurate tables, tree glyphs and line spacing
+
+- Tightened table boundary detection so surrounding notes, headings and list items stay outside the table instead of being absorbed or duplicated inside cells
+- Recovered box-drawing glyphs (│ ├ ─ └ ┌ ┐ ┘ ┤) from embedded subset fonts, so directory trees keep their branches in Word
+- Measured real line pitch per page for body text and code blocks separately, with a document-wide fallback, and applied it as exact Word line spacing
+- Matched the original font families (Microsoft YaHei UI / Cascadia Mono) to keep text widths and line breaks aligned
+- Preserved page margins and eliminated spurious blank pages caused by spillover
 
 ### v1.0.2 — 2026-11-19 — PDF→Word style fidelity
 
@@ -151,7 +159,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.2** — PDF 转 Word 可保留颜色、字体与底色。
+> **最新版本：v1.0.3** — 表格边界识别更准确，目录树符号与真实行距完整还原。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -241,7 +249,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.1 已备份至 `ClaraPDFPro_Backups\1.0.1_PDF转Word保留颜色字体底色与表格样式`，准备 v1.0.3 时创建下一份备份。
+> v1.0.2 已备份至 `ClaraPDFPro_Backups\1.0.2_PDF转Word修复表格识别与行距页边距还原`，准备 v1.0.4 时创建下一份备份。
 
 ## 后续计划
 
@@ -253,6 +261,14 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.3 — 2026-11-20 — 表格、目录树符号与行距还原
+
+- 收紧表格边界识别：表格外的注意事项、标题与列表项不再被吞进单元格，也不会重复出现
+- 从嵌入的子集字体中还原制表符（│ ├ ─ └ ┌ ┐ ┘ ┤），Word 中目录树的分支线完整显示
+- 逐页分别统计正文与代码块的真实行距（并有全文兜底），写入 Word 固定行距
+- 匹配原文字体（微软雅黑 UI / Cascadia Mono），字宽与换行位置更接近原 PDF
+- 保留页边距，并消除内容溢出造成的多余空白页
 
 ### v1.0.2 — 2026-11-19 — PDF 转 Word 样式还原
 
