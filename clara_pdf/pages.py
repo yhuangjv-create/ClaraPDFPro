@@ -100,11 +100,13 @@ class ConvertPage(ToolPage):
 
         self.start_btn = QPushButton(i18n.t("convert.start"))
         self.start_btn.setObjectName("PrimaryButton")
-        card.add(_button_row(self.start_btn))
+        self.clear_btn = QPushButton(i18n.t("common.clear"))
+        card.add(_button_row(self.start_btn, self.clear_btn))
 
         self.mode_combo.currentIndexChanged.connect(self._apply_mode)
         self.input.changed.connect(self._on_input)
         self.start_btn.clicked.connect(self._start)
+        self.clear_btn.clicked.connect(self._clear)
         self._apply_mode()
 
     # ---------------- 交互 ----------------
@@ -135,6 +137,12 @@ class ConvertPage(ToolPage):
         mode = self._mode()
         tag = "converted" if mode in ("pdf2docx", "pdf2xlsx") else ""
         self.output.set_path(default_output(src, self._OUTPUT_EXT[mode], tag))
+
+    def _clear(self) -> None:
+        if self.is_busy():
+            return
+        self.input.set_path("")
+        self.output.set_path("")
 
     def _start(self) -> None:
         mode = self._mode()
@@ -243,11 +251,13 @@ class CompressPage(ToolPage):
 
         self.start_btn = QPushButton(i18n.t("compress.start"))
         self.start_btn.setObjectName("PrimaryButton")
-        card.add(_button_row(self.start_btn))
+        self.clear_btn = QPushButton(i18n.t("common.clear"))
+        card.add(_button_row(self.start_btn, self.clear_btn))
 
         self.input.changed.connect(self._on_input)
         self.mode_combo.currentIndexChanged.connect(self._on_mode)
         self.start_btn.clicked.connect(self._start)
+        self.clear_btn.clicked.connect(self._clear)
         self._on_mode()
 
     def _on_mode(self) -> None:
@@ -272,6 +282,14 @@ class CompressPage(ToolPage):
                 size=human_size(info["size"]),
             ))
         self.output.set_path(default_output(src, ".pdf", "compressed"))
+
+    def _clear(self) -> None:
+        if self.is_busy():
+            return
+        self.input.set_path("")
+        self.output.set_path("")
+        self.info.setText("—")
+        self.result.setText("")
 
     def _start(self) -> None:
         src = self.input.path()
@@ -318,9 +336,10 @@ class OrganizePage(ToolPage):
         self.input = FileRow(i18n, "filter.pdf")
         self.info = _hint(i18n.t("organize.manager_hint"))
         self.manager_btn = QPushButton(i18n.t("organize.open_manager"))
+        self.clear_input_btn = QPushButton(i18n.t("common.clear"))
         card.add(_field(i18n.t("common.input"), self.input))
         card.add(_field("", self.info))
-        card.add(_button_row(self.manager_btn))
+        card.add(_button_row(self.manager_btn, self.clear_input_btn))
 
         # ---- 拆分 / 提取 ----
         split_card = self.add_card(i18n.t("organize.split_title"), i18n.t("organize.split_desc"))
@@ -343,7 +362,8 @@ class OrganizePage(ToolPage):
         split_card.add(_field("", split_row))
         self.extract_btn = QPushButton(i18n.t("organize.extract"))
         self.split_btn = QPushButton(i18n.t("organize.split_btn"))
-        split_card.add(_button_row(self.extract_btn, self.split_btn))
+        self.clear_split_btn = QPushButton(i18n.t("common.clear"))
+        split_card.add(_button_row(self.extract_btn, self.split_btn, self.clear_split_btn))
 
         # ---- 合并 ----
         merge_card = self.add_card(i18n.t("organize.merge_title"), i18n.t("organize.merge_desc"))
@@ -356,8 +376,10 @@ class OrganizePage(ToolPage):
 
         self.input.changed.connect(self._on_input)
         self.manager_btn.clicked.connect(self._open_manager)
+        self.clear_input_btn.clicked.connect(self._clear_input)
         self.extract_btn.clicked.connect(self._extract)
         self.split_btn.clicked.connect(self._split)
+        self.clear_split_btn.clicked.connect(self._clear_split)
         self.merge_files.changed.connect(self._on_merge_files)
         self.merge_btn.clicked.connect(self._merge)
 
@@ -374,6 +396,18 @@ class OrganizePage(ToolPage):
             pages=info["pages"],
             size=human_size(info["size"]),
         ))
+
+    def _clear_input(self) -> None:
+        if self.is_busy():
+            return
+        self.input.set_path("")
+        self.info.setText(self.i18n.t("organize.manager_hint"))
+
+    def _clear_split(self) -> None:
+        if self.is_busy():
+            return
+        self.range_edit.clear()
+        self.per_spin.setValue(1)
 
     def _open_manager(self) -> None:
         src = self.input.path()
@@ -482,17 +516,26 @@ class PdfToImagesPage(ToolPage):
 
         self.start_btn = QPushButton(i18n.t("pdf2img.start"))
         self.start_btn.setObjectName("PrimaryButton")
-        card.add(_button_row(self.start_btn))
+        self.clear_btn = QPushButton(i18n.t("common.clear"))
+        card.add(_button_row(self.start_btn, self.clear_btn))
 
         self.input.changed.connect(self._on_input)
         self.outdir_btn.clicked.connect(self._browse_dir)
         self.start_btn.clicked.connect(self._start)
+        self.clear_btn.clicked.connect(self._clear)
 
     def _on_input(self) -> None:
         src = self.input.path()
         if not src or not Path(src).exists():
             return
         self.outdir.setText(str(Path(src).parent / f"{Path(src).stem}_images"))
+
+    def _clear(self) -> None:
+        if self.is_busy():
+            return
+        self.input.set_path("")
+        self.outdir.clear()
+        self.range_edit.clear()
 
     def _browse_dir(self) -> None:
         start = self.outdir.text() or Settings().last_dir
@@ -590,11 +633,13 @@ class SecurityPage(ToolPage):
 
         self.start_btn = QPushButton(i18n.t("common.start"))
         self.start_btn.setObjectName("PrimaryButton")
-        card.add(_button_row(self.start_btn))
+        self.clear_btn = QPushButton(i18n.t("common.clear"))
+        card.add(_button_row(self.start_btn, self.clear_btn))
 
         self.mode_combo.currentIndexChanged.connect(self._on_mode)
         self.input.changed.connect(self._on_input)
         self.start_btn.clicked.connect(self._start)
+        self.clear_btn.clicked.connect(self._clear)
         self._on_mode()
 
     def _on_mode(self) -> None:
@@ -613,6 +658,14 @@ class SecurityPage(ToolPage):
             return
         encrypt = self.mode_combo.currentData() == "encrypt"
         self.output.set_path(default_output(src, ".pdf", "encrypted" if encrypt else "decrypted"))
+
+    def _clear(self) -> None:
+        if self.is_busy():
+            return
+        self.input.set_path("")
+        self.output.set_path("")
+        self.password.clear()
+        self.owner.clear()
 
     def _start(self) -> None:
         src = self.input.path()

@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.4-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.5-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.4** — No more console window or library chatter when the app starts.
+> **Latest release: v1.0.5** — Every tool page now has a Clear button.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -98,7 +98,7 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.3 is archived at `ClaraPDFPro_Backups\1.0.3_隐藏控制台窗口与无关提示`. The next backup will be created when v1.0.5 is prepared.
+> v1.0.4 is archived at `ClaraPDFPro_Backups\1.0.4_所有工具页新增清空按钮`. The next backup will be created when v1.0.6 is prepared.
 
 ## Roadmap
 
@@ -110,6 +110,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.5 — 2026-11-20 — Clear buttons for every tool
+
+- Added a `Clear` button to Convert, Compress, PDF to Images and Security
+- Added `Clear` buttons to the page-edit and split/extract sections of Organize
+- Left the existing clear buttons in the multi-file lists (Organize merge, Images to PDF) unchanged
 
 ### v1.0.4 — 2026-11-20 — Silent startup
 
@@ -165,7 +171,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.4** — 启动时不再弹出黑色控制台窗口，也不再输出无关提示。
+> **最新版本：v1.0.5** — 所有工具页都提供“清空”按钮。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -255,7 +261,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.3 已备份至 `ClaraPDFPro_Backups\1.0.3_隐藏控制台窗口与无关提示`，准备 v1.0.5 时创建下一份备份。
+> v1.0.4 已备份至 `ClaraPDFPro_Backups\1.0.4_所有工具页新增清空按钮`，准备 v1.0.6 时创建下一份备份。
 
 ## 后续计划
 
@@ -267,6 +273,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.5 — 2026-11-20 — 所有工具页新增清空按钮
+
+- 格式转换、压缩、PDF 转图片、加密解密页新增“清空”按钮
+- 页面管理的“页面编辑”和“拆分/提取”区域新增“清空”按钮
+- 多文件列表（页面管理合并、图片转 PDF）原有的“清空”按钮保持不变
 
 ### v1.0.4 — 2026-11-20 — 静默启动
 
