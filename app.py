@@ -16,7 +16,27 @@ from clara_pdf.icons import make_app_icon
 from clara_pdf.theme import build_palette
 
 
+def _hide_console() -> None:
+    """双击启动时隐藏附带的控制台窗口；从终端启动时保持不动。"""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        hwnd = kernel32.GetConsoleWindow()
+        if not hwnd:
+            return
+        # 只有控制台里仅挂着本进程时才隐藏，避免把用户的终端窗口一起关掉
+        processes = (ctypes.c_ulong * 8)()
+        if kernel32.GetConsoleProcessList(processes, 8) <= 1:
+            ctypes.windll.user32.ShowWindow(hwnd, 0)
+    except Exception:
+        pass
+
+
 def main() -> int:
+    _hide_console()
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
