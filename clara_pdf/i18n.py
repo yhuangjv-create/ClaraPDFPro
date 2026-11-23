@@ -267,6 +267,16 @@ STRINGS: dict[str, tuple[str, str]] = {
     "editor.zoom_pct": ("{pct}%", "{pct}%"),
     "editor.mode_browse": ("浏览", "Browse"),
     "editor.mode_form": ("填表", "Fill form"),
+    "editor.mode_text": ("编辑文字", "Edit text"),
+    "editor.mode_annot": ("批注", "Annotate"),
+    "editor.annot_highlight": ("高亮", "Highlight"),
+    "editor.annot_underline": ("下划线", "Underline"),
+    "editor.annot_note": ("便签", "Note"),
+    "editor.note_prompt": ("便签内容：", "Note text:"),
+    "editor.no_text": (
+        "该页未检测到可编辑文字。",
+        "No editable text found on this page.",
+    ),
     "editor.toggle_annots": ("显示批注", "Show annotations"),
     "editor.toggle_fields": ("高亮字段", "Highlight fields"),
     "editor.no_form": (

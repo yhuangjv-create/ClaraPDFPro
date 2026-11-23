@@ -121,6 +121,7 @@ class PdfEditorWindow(QMainWindow):
         sb.showMessage("")
 
         self.view.field_changed.connect(self._on_field_changed)
+        self.view.content_changed.connect(self._on_field_changed)
         self.view.status.connect(lambda m: sb.showMessage(m, 4000))
 
     def _build_toolbar(self) -> None:
@@ -171,9 +172,17 @@ class PdfEditorWindow(QMainWindow):
         tb.addSeparator()
 
         self.mode_combo = QComboBox()
-        self.mode_combo.setFixedWidth(96)
+        self.mode_combo.setFixedWidth(112)
         self.mode_combo.addItem(self.i18n.t("editor.mode_form"), "form")
         self.mode_combo.addItem(self.i18n.t("editor.mode_browse"), "browse")
+        self.mode_combo.addItem(self.i18n.t("editor.mode_text"), "text")
+        self.mode_combo.addItem(self.i18n.t("editor.mode_annot"), "annot")
+        self.annot_combo = QComboBox()
+        self.annot_combo.setFixedWidth(88)
+        self.annot_combo.addItem(self.i18n.t("editor.annot_highlight"), "highlight")
+        self.annot_combo.addItem(self.i18n.t("editor.annot_underline"), "underline")
+        self.annot_combo.addItem(self.i18n.t("editor.annot_note"), "note")
+        self.annot_combo.setEnabled(False)
         self.act_annots = QAction(self.i18n.t("editor.toggle_annots"), self)
         self.act_annots.setCheckable(True)
         self.act_annots.setChecked(True)
@@ -181,6 +190,7 @@ class PdfEditorWindow(QMainWindow):
         self.act_fields.setCheckable(True)
         self.act_fields.setChecked(True)
         tb.addWidget(self.mode_combo)
+        tb.addWidget(self.annot_combo)
         tb.addAction(self.act_annots)
         tb.addAction(self.act_fields)
 
@@ -197,6 +207,8 @@ class PdfEditorWindow(QMainWindow):
         self.zoom_combo.activated.connect(lambda _i: self._apply_combo_zoom())
         self.zoom_combo.lineEdit().editingFinished.connect(self._apply_combo_zoom)
         self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+        self.annot_combo.currentIndexChanged.connect(
+            lambda _i: self.view.set_annot_tool(self.annot_combo.currentData()))
         self.act_annots.toggled.connect(self.view.set_annots_visible)
         self.act_fields.toggled.connect(self.view.set_fields_visible)
 
@@ -308,7 +320,12 @@ class PdfEditorWindow(QMainWindow):
     # ---------------- 模式 ----------------
     def _on_mode_changed(self, _idx: int) -> None:
         mode = self.mode_combo.currentData()
+        self.annot_combo.setEnabled(mode == "annot")
         self.view.set_mode(mode)
+        if mode == "annot":
+            self.view.set_annot_tool(self.annot_combo.currentData())
+        elif mode == "text" and not self.view._spans:
+            self.statusBar().showMessage(self.i18n.t("editor.no_text"), 5000)
 
     # ---------------- 编辑反馈 ----------------
     def _on_field_changed(self) -> None:

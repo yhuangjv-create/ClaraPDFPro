@@ -21,6 +21,51 @@ FF_REQUIRED = 1 << 1
 FF_MULTILINE = 1 << 12
 FF_PASSWORD = 1 << 13
 
+# 文本 span 标志位（PyMuPDF）
+SF_ITALIC = 1 << 1
+SF_SERIF = 1 << 2
+SF_MONO = 1 << 3
+SF_BOLD = 1 << 4
+
+# base-14 字体变体：(字族, 粗体, 斜体) → 字体名
+_BASE14 = {
+    ("he", False, False): "helv", ("he", True, False): "hebo",
+    ("he", False, True): "heit", ("he", True, True): "hebi",
+    ("ti", False, False): "tiro", ("ti", True, False): "tibo",
+    ("ti", False, True): "tiit", ("ti", True, True): "tibi",
+    ("co", False, False): "cour", ("co", True, False): "cobo",
+    ("co", False, True): "coit", ("co", True, True): "cobi",
+}
+
+
+def _is_cjk(text: str) -> bool:
+    for ch in text:
+        code = ord(ch)
+        if (0x2E80 <= code <= 0x9FFF or 0xF900 <= code <= 0xFAFF
+                or 0xFF00 <= code <= 0xFFEF):
+            return True
+    return False
+
+
+def _font_for_text(text: str, flags: int) -> str:
+    """为替换文本挑选字体：中文用内置 CJK，拉丁按粗体/斜体/衬线/等宽选择 base-14。"""
+    if _is_cjk(text):
+        return "china-s"
+    bold = bool(flags & SF_BOLD)
+    italic = bool(flags & SF_ITALIC)
+    if flags & SF_MONO:
+        family = "co"
+    elif flags & SF_SERIF:
+        family = "ti"
+    else:
+        family = "he"
+    return _BASE14[(family, bold, italic)]
+
+
+def _color_tuple(color: int | None) -> tuple[float, float, float]:
+    c = int(color or 0)
+    return (((c >> 16) & 255) / 255.0, ((c >> 8) & 255) / 255.0, (c & 255) / 255.0)
+
 
 @dataclass
 class FieldInfo:
@@ -111,14 +156,17 @@ class PdfEditorEngine:
     # ---------------- 文本 ----------------
     def text_spans(self, idx: int) -> list[dict]:
         spans: list[dict] = []
-        page = self.doc[idx]
+        page = self._page(idx)
         for block in page.get_text("dict")["blocks"]:
             if block.get("type") != 0:
                 continue
             for line in block.get("lines", []):
                 for span in line.get("spans", []):
+                    if not span.get("text", "").strip():
+                        continue
                     spans.append({
-                        "bbox": span["bbox"],
+                        "bbox": tuple(float(v) for v in span["bbox"]),
+                        "origin": tuple(float(v) for v in span.get("origin", (0.0, 0.0))),
                         "text": span.get("text", ""),
                         "font": span.get("font", ""),
                         "size": float(span.get("size", 11)),
@@ -126,6 +174,92 @@ class PdfEditorEngine:
                         "flags": span.get("flags", 0),
                     })
         return spans
+
+    def replace_text(self, idx: int, span: dict, new_text: str) -> bool:
+        """用涂黑 + 重写的方式替换一段文本，尽量保留位置、字号与颜色。"""
+        old_text = span.get("text", "")
+        if new_text == old_text:
+            return False
+        self._push_undo()
+        page = self._page(idx)
+        bbox = pymupdf.Rect(span["bbox"])
+        try:
+            page.add_redact_annot(bbox)
+            page.apply_redactions(
+                images=pymupdf.PDF_REDACT_IMAGE_NONE,
+                graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
+                text=pymupdf.PDF_REDACT_TEXT_REMOVE,
+            )
+            if new_text:
+                fontname = _font_for_text(new_text, int(span.get("flags", 0)))
+                origin = span.get("origin") or (bbox.x0, bbox.y1)
+                page.insert_text(
+                    origin,
+                    new_text,
+                    fontsize=float(span.get("size", 11)),
+                    fontname=fontname,
+                    color=_color_tuple(span.get("color", 0)),
+                )
+        except Exception as exc:  # noqa: BLE001
+            self._undo.pop()
+            raise PdfEngineError(f"无法替换文本：{exc}") from exc
+        self._dirty = True
+        return True
+
+    def select_rects(self, idx: int, x0: float, y0: float,
+                     x1: float, y1: float) -> list[tuple[float, float, float, float]]:
+        """把矩形选择转换为按行合并的文本矩形列表（用于高亮 / 下划线）。"""
+        sel = pymupdf.Rect(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
+        groups: dict[tuple[int, int], pymupdf.Rect] = {}
+        for w in self._page(idx).get_text("words"):
+            wr = pymupdf.Rect(w[:4])
+            if wr.intersects(sel):
+                key = (w[5], w[6])
+                groups[key] = groups[key] | wr if key in groups else wr
+        return [tuple(r) for r in groups.values()]
+
+    # ---------------- 批注 ----------------
+    def add_highlight(self, idx: int, rects: list) -> bool:
+        return self._add_markup(idx, "highlight", rects)
+
+    def add_underline(self, idx: int, rects: list) -> bool:
+        return self._add_markup(idx, "underline", rects)
+
+    def _add_markup(self, idx: int, kind: str, rects: list) -> bool:
+        if not rects:
+            return False
+        self._push_undo()
+        page = self._page(idx)
+        try:
+            prects = [pymupdf.Rect(*r) for r in rects]
+            if kind == "underline":
+                annot = page.add_underline_annot(prects)
+            else:
+                annot = page.add_highlight_annot(prects)
+            annot.update()
+        except Exception as exc:  # noqa: BLE001
+            self._undo.pop()
+            raise PdfEngineError(f"无法添加批注：{exc}") from exc
+        self._dirty = True
+        return True
+
+    def add_note(self, idx: int, point: tuple[float, float], text: str) -> bool:
+        self._push_undo()
+        page = self._page(idx)
+        try:
+            annot = page.add_text_annot(pymupdf.Point(*point), text or "", icon="Note")
+            annot.update()
+        except Exception as exc:  # noqa: BLE001
+            self._undo.pop()
+            raise PdfEngineError(f"无法添加便签：{exc}") from exc
+        self._dirty = True
+        return True
+
+    def annot_count(self, idx: int) -> int:
+        try:
+            return sum(1 for _ in self._page(idx).annots())
+        except Exception:  # noqa: BLE001
+            return 0
 
     # ---------------- 表单 ----------------
     def has_forms(self) -> bool:

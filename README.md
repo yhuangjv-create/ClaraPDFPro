@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.6-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.7-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.6** — New PDF editor: fill forms, toggle fields, with undo / redo and in-place save.
+> **Latest release: v1.0.7** — WYSIWYG text editing plus annotations: highlight, underline and sticky notes.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -17,7 +17,7 @@ ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and 
 
 | Module | Capabilities |
 | --- | --- |
-| **Edit PDF** | Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline on the page; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form-fill modes |
+| **Edit PDF** | Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
 | **Convert** | PDF → Word (headings, paragraphs, tables, images rebuilt), PDF → Excel (tables detected per page), Word → PDF, Excel → PDF |
 | **Compress** | Compress by image DPI + JPEG quality, compress to a target file size, maximum compression by rasterizing pages |
 | **Organize** | Thumbnail page manager: rotate, delete, reorder and save; extract page ranges; split every *N* pages; merge multiple PDFs |
@@ -102,17 +102,23 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.5 is archived at `ClaraPDFPro_Backups\1.0.5_所有工具页新增清空按钮`. The next backup will be created when v1.0.7 is prepared.
+> v1.0.6 is archived at `ClaraPDFPro_Backups\1.0.6_新增PDF编辑器与表单填写`. The next backup will be created when v1.0.8 is prepared.
 
 ## Roadmap
 
-- Direct PDF text editing and annotation (highlight, note, underline) — next
-- OCR for scanned documents
+- OCR for scanned documents — next
 - Batch conversion queue
 
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.7 — 2026-11-23 — WYSIWYG text editing and annotations
+
+- **Edit text** mode: click any text on the page to rewrite it in place; the replacement restores the original position, font size, color and base-14 face (bold / italic / serif / monospace), and Chinese through the built-in CJK font
+- **Annotate** mode: drag to select text and add a **highlight** or **underline**; place a **sticky note** anywhere
+- Text and annotations are applied through redaction + rewrite and annotation APIs, so they render in any PDF viewer and are covered by undo / redo
+- The mode selector now offers Browse / Fill form / Edit text / Annotate, with a dedicated annotation-tool picker
 
 ### v1.0.6 — 2026-11-23 — PDF editor with form filling
 
@@ -182,7 +188,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.6** — 新增 PDF 编辑器：填表、勾选字段，支持撤销/重做与原地保存。
+> **最新版本：v1.0.7** — 所见即所得文本编辑，以及高亮、下划线、便签三种批注。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -191,7 +197,7 @@ ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF �
 
 | 模块 | 能力 |
 | --- | --- |
-| **PDF 编辑** | 在页面上直接填写表单字段、勾选复选框/单选框、编辑下拉与列表框；支持撤销/重做、原地增量保存与另存为；含页面缩略图、缩放与浏览/填表模式 |
+| **PDF 编辑** | 填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
 | **格式转换** | PDF → Word（还原标题、段落、表格与图片）、PDF → Excel（逐页识别表格）、Word → PDF、Excel → PDF |
 | **PDF 压缩** | 按图片 PPI + JPEG 质量压缩、按目标体积压缩、极限压缩（整页转图片） |
 | **页面管理** | 缩略图管理器：旋转、删除、排序后另存；提取指定页；每 N 页拆分；多文件合并 |
@@ -276,17 +282,23 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.5 已备份至 `ClaraPDFPro_Backups\1.0.5_所有工具页新增清空按钮`，准备 v1.0.7 时创建下一份备份。
+> v1.0.6 已备份至 `ClaraPDFPro_Backups\1.0.6_新增PDF编辑器与表单填写`，准备 v1.0.8 时创建下一份备份。
 
 ## 后续计划
 
-- PDF 文本直接编辑与批注（高亮、便签、下划线）—— 下一版本
-- 扫描件 OCR
+- 扫描件 OCR —— 下一版本
 - 批量转换队列
 
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.7 — 2026-11-23 — 所见即所得文本编辑与批注
+
+- **编辑文字**模式：单击页面任意文字即可原位改写；替换时还原原始位置、字号、颜色与 base-14 字形（粗体/斜体/衬线/等宽），中文使用内置 CJK 字体
+- **批注**模式：拖选文字添加**高亮**或**下划线**；可在任意位置放置**便签**
+- 文本改写采用「涂黑 + 重写」，批注采用标准注释 API，任何 PDF 阅读器均可正常显示，且纳入撤销/重做
+- 模式下拉扩为 浏览 / 填表 / 编辑文字 / 批注，并新增批注工具选择
 
 ### v1.0.6 — 2026-11-23 — 新增 PDF 编辑器与表单填写
 
