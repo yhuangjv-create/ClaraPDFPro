@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -18,7 +18,6 @@ from PySide6.QtGui import (
     QKeySequence,
     QPalette,
     QShortcut,
-    QWheelEvent,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -169,64 +168,23 @@ class _RibbonBar(QWidget):
         return group
 
 
-class _PageScrollArea(QScrollArea):
-    """单页滚动 + 触边翻页。
+class _SmoothScrollArea(QScrollArea):
+    """在 Windows + PySide6 下，QScrollArea.wheelEvent() 本身是 no-op——
 
-    正常情况下滚轮驱动 QScrollArea 在当前页内滚动；到达顶/底后继续滚
-    动才会翻页。当页面本身比视口还短时（整页已经显示出来），滚轮每
-    次都直接翻页，避免"滚不动"的困惑。
+    wheel 事件到了但滚动条不动。这里 override wheelEvent，把 angleDelta
+    直接转成 verticalScrollBar.setValue，让滚轮真正推动长画布。不做任
+    何触边翻页逻辑——PdfPageView 已经是所有页堆叠的长画布，滚轮滚就是
+    连续滚。
     """
 
-    page_prev = Signal()
-    page_next = Signal()
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._paging_lock = False
-
-    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
-        if self._paging_lock:
-            event.accept()
-            return
+    def wheelEvent(self, event):  # noqa: N802, ANN201
         sb = self.verticalScrollBar()
         delta = event.angleDelta().y()
         if delta == 0:
-            super().wheelEvent(event)
-            return
-        scrolling_down = delta > 0
-        # 关键：只有 scrollBar 本身有范围（maximum > 0）时，才谈"触边"
-        has_scroll_range = sb.maximum() > sb.minimum()
-        if has_scroll_range:
-            at_bottom = sb.value() >= sb.maximum() - 1
-            at_top = sb.value() <= sb.minimum() + 1
-            if scrolling_down and at_bottom:
-                self._emit_and_lock("next", event)
-                return
-            if not scrolling_down and at_top:
-                self._emit_and_lock("prev", event)
-                return
-            # 直接驱动滚动条，绕开 QScrollArea.wheelEvent 在某些情况下不动滚动条的 bug
-            step = max(1, abs(delta))
-            sb.setValue(sb.value() + step if scrolling_down else sb.value() - step)
             event.accept()
             return
-        # maximum == 0：当前页已经完整显示在视口里，滚轮直接翻页
-        if scrolling_down:
-            self._emit_and_lock("next", event)
-        else:
-            self._emit_and_lock("prev", event)
-
-    def _emit_and_lock(self, which: str, event: QWheelEvent) -> None:
-        self._paging_lock = True
-        if which == "next":
-            self.page_next.emit()
-        else:
-            self.page_prev.emit()
+        sb.setValue(sb.value() + delta)
         event.accept()
-        QTimer.singleShot(0, self._unlock)
-
-    def _unlock(self) -> None:
-        self._paging_lock = False
 
 
 class PdfEditorWindow(QMainWindow):
@@ -297,14 +255,15 @@ class PdfEditorWindow(QMainWindow):
         outer.addWidget(divider)
 
         # 右侧：文档视图与空视图叠放，编辑器界面始终常驻
-        self.scroll = _PageScrollArea()
+        # PdfPageView 现在是多页垂直堆叠的长画布，滚轮在整个长画布上连续滚动
+        self.scroll = _SmoothScrollArea()
         self.scroll.setWidgetResizable(False)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.view = PdfPageView(self.engine, self.i18n, self)
         self.scroll.setWidget(self.view)
-        # 触边翻页：滚轮到达当前页顶/底后自动切换上/下一页，并把滚动条设到对侧
-        self.scroll.page_prev.connect(self._goto_prev_from_wheel)
-        self.scroll.page_next.connect(self._goto_next_from_wheel)
+        # 滚轮驱动 _SmoothScrollArea.wheelEvent 手动 setValue；
+        # scrollBar 的 valueChanged 反向把当前页推回 view / 缩略图 / 状态栏
+        self.scroll.verticalScrollBar().valueChanged.connect(self._on_scroll_changed)
 
         self.empty_page = self._build_empty_page()
         self.right_stack = QStackedWidget()
@@ -868,34 +827,48 @@ class PdfEditorWindow(QMainWindow):
 
     # ---------------- 翻页 / 缩放 ----------------
     def _goto(self, idx: int) -> None:
-        if self.engine is None:
+        """让滚动条滚到第 idx 页的顶部——因为 PdfPageView 是多页长画布。"""
+        if self.engine is None or self.view._page_offsets is None:
             return
         total = self.engine.page_count
         if total <= 0:
             return
         idx = max(0, min(idx, total - 1))
-        self.view.show_page(idx)
+        sb = self.scroll.verticalScrollBar()
+        target = self.view.offset_of_page(idx)
+        if sb.value() == target:
+            # 已经在那一页顶部，但 label/thumb 可能还没同步（首次打开时）
+            self.view.page_idx = idx
+            self._sync_page_chrome(idx)
+        else:
+            sb.setValue(target)  # 会触发 _on_scroll_changed
+
+    def _on_scroll_changed(self, value: int) -> None:
+        """scrollBar 位置变化 → 推导出当前页 → 同步 view / 缩略图 / 状态栏。"""
+        if self.engine is None or self.view._page_offsets is None:
+            return
+        idx = self.view.page_at_y(value)
+        if idx is None:
+            # 在页之间的 gap 里——归到最近的一页
+            for i, top in enumerate(self.view._page_offsets):
+                if top > value:
+                    idx = max(0, i - 1)
+                    break
+            else:
+                idx = len(self.view._page_offsets) - 1
+        if idx != self.view.page_idx:
+            self.view.page_idx = idx
+            self._sync_page_chrome(idx)
+
+    def _sync_page_chrome(self, idx: int) -> None:
+        """同步页码 label、缩略图高亮、状态栏。"""
+        total = self.engine.page_count if self.engine else 0
         self.page_label.setText(self.i18n.t("editor.page_n", n=idx + 1, total=total))
         self.status_page.setText(self.i18n.t("editor.page_n", n=idx + 1, total=total))
         self.thumb_list.blockSignals(True)
         self.thumb_list.setCurrentRow(idx)
         self.thumb_list.blockSignals(False)
         self._update_status_fields()
-
-    def _goto_next_from_wheel(self) -> None:
-        """滚轮触底后的下一页：翻到下一页并让滚动条回到顶部。"""
-        if self.engine is None or self.view.page_idx >= self.engine.page_count - 1:
-            return
-        self._goto(self.view.page_idx + 1)
-        self.scroll.verticalScrollBar().setValue(0)
-
-    def _goto_prev_from_wheel(self) -> None:
-        """滚轮触顶后的上一页：翻到上一页并让滚动条停到底部。"""
-        if self.engine is None or self.view.page_idx <= 0:
-            return
-        self._goto(self.view.page_idx - 1)
-        sb = self.scroll.verticalScrollBar()
-        sb.setValue(sb.maximum())
 
     def _on_thumb_selected(self, row: int) -> None:
         if row < 0 or row == self.view.page_idx:

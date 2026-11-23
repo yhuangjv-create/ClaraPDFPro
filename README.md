@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.5-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.6-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.5** — fixed the mouse wheel that was doing nothing or flipping pages the wrong way; wheel events now drive the scroll bar directly, just like a normal PDF viewer.
+> **Latest release: v1.1.6** — the viewer now stacks every page vertically into one long canvas so the mouse wheel scrolls across all pages, Word-style, without any page‑flip boundaries.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,13 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.6 — 2026-11-23 — Continuous vertical scrolling like Word
+
+- `PdfPageView` now pre‑renders every page once, stacks them vertically inside a single widget (with an 8‑px gap), and `paintEvent` draws all of them in one long canvas — no more single‑page switch
+- Hit‑testing computes which page segment the mouse lands in first, then resolves fields, text spans, and annotations in that page's local coordinates, so form fill, text edit, highlight, underline, and sticky notes all still work correctly
+- The old `PageScrollArea` with its edge‑triggered page flipping is replaced by a thin `SmoothScrollArea` that simply translates `wheelEvent.angleDelta` into `verticalScrollBar.setValue`, because under PySide6 on Windows `super().wheelEvent()` alone does not move the scroll bar
+- `_goto(idx)` now animates the scroll bar to `PdfPageView.offset_of_page(idx)` instead of rebuilding a single page; a new `_on_scroll_changed(value)` listens to the scroll bar and derives the current page from the offset table, which keeps page label, thumbnail highlight, and status bar perfectly in sync with wherever you have scrolled to
 
 ### v1.1.5 — 2026-11-23 — Mouse wheel actually drives the view
 
@@ -248,7 +255,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.5** — 修复鼠标滚轮在页面区域无效或翻页方向错乱的问题，滚轮事件现在直接驱动滚动条，和正常 PDF 查看器一样。
+> **最新版本：v1.1.6** — 所有页垂直堆叠成一张长画布，鼠标滚轮直接穿过全部页面，像 Word 那样丝滑，不再有翻页边界。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -344,7 +351,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.4 已备份至 `ClaraPDFPro_Backups\1.1.3_关闭时记忆语言`，准备 v1.1.6 时创建下一份备份。
+> v1.1.5 已备份至 `ClaraPDFPro_Backups\1.1.4_滚轮触边翻页`，准备 v1.1.7 时创建下一份备份。
 
 ## 后续计划
 
@@ -354,6 +361,13 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.6 — 2026-11-23 — Word 式连续垂直滚动
+
+- `PdfPageView` 启动时预渲染全部页面，垂直堆叠在同一个 widget 内（页间留 8 px 空隙），`paintEvent` 一次性画出整条长画布——不再按页切换
+- hit-test 先算出鼠标落在哪一页段内，再用该页的局部坐标查字段、文本 span 和批注，因此表单填写、文本编辑、高亮、下划线、便签依然全部可用
+- 旧的触边翻页 `PageScrollArea` 换成极简 `SmoothScrollArea`：仅把 `wheelEvent.angleDelta` 转成 `verticalScrollBar.setValue`——因为 PySide6 on Windows 下 `super().wheelEvent()` 就是 no-op
+- `_goto(idx)` 现在让滚动条滚到 `PdfPageView.offset_of_page(idx)` 而不是重建单页；新增 `_on_scroll_changed(value)` 监听滚动条反向推导当前页，页码 label、缩略图高亮、状态栏全部自动同步
 
 ### v1.1.5 — 2026-11-23 — 滚轮真正驱动视图了
 
