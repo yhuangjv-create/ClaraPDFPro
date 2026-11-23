@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -446,9 +446,33 @@ class PdfPageView(QWidget):
         rect.setHeight(max(rect.height() + 6, 22))
         editor = _LineEdit(self)
         editor.setText(span["text"])
-        font = editor.font()
-        font.setPointSizeF(max(6.0, float(span.get("size", 11)) * self.scale * 0.75))
-        editor.setFont(font)
+
+        # ---------- 所见即所得：用 span 原始字体/字号/颜色/粗斜体 ----------
+        from PySide6.QtGui import QPalette
+
+        qfont = self._qfont_for_span(span)
+        editor.setFont(qfont)
+        color = self._qcolor_for_span(span)
+        palette = editor.palette()
+        palette.setColor(QPalette.Text, color)
+        palette.setColor(QPalette.Base, QColor(255, 255, 255, 0))  # 透明底
+        editor.setPalette(palette)
+        # 样式表必须显式写 font-family / font-size / color —— 否则主题里全局 QWidget
+        # 规则会在 show() 时覆盖掉我们 setFont() + setPalette() 的设置
+        style_sheet = (
+            "QLineEdit {"
+            f"  font-family: {qfont.family()};"
+            f"  font-size: {qfont.pointSizeF()}pt;"
+            f"  font-weight: {'bold' if qfont.bold() else 'normal'};"
+            f"  font-style: {'italic' if qfont.italic() else 'normal'};"
+            f"  color: {color.name()};"
+            "  background: transparent;"
+            "  border: none;"
+            "  padding: 0;"
+            "}")
+        editor.setStyleSheet(style_sheet)
+        editor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
         editor.setGeometry(rect)
         editor.show()
         editor.setFocus()
@@ -461,6 +485,52 @@ class PdfPageView(QWidget):
             editor.cancel.connect(self._close_editor)
         except Exception:  # noqa: BLE001
             pass
+
+    @staticmethod
+    def _qfont_for_span(span: dict) -> QFont:
+        """从 pymupdf span dict 构造一个 QFont，尽量匹配原始 PDF 字体。"""
+        from PySide6.QtGui import QFontDatabase
+
+        size_pt = max(4.0, float(span.get("size", 11)))
+        flags = int(span.get("flags", 0))
+        bold = bool(flags & 4)       # SF_BOLD
+        italic = bool(flags & 2)     # SF_ITALIC
+        family = str(span.get("font", "")).strip()
+
+        db = QFontDatabase()
+        available = set(db.families())
+
+        # pymupdf 内部名常见形如 "F1,Helv" / "Helv" / "china-s"
+        # 先把逗号前的内部 ID 去掉，拿后面的 family 名
+        if "," in family:
+            family = family.split(",")[-1].strip()
+        # 去掉 PDF base14 前缀（he / ti / co / cour / times / helv）
+        family_lower = family.lower()
+        base14_map = {
+            "helv": "Helvetica", "helvetica": "Helvetica",
+            "ti": "Times New Roman", "times": "Times New Roman",
+            "cour": "Courier New", "courier": "Courier New",
+            "he": "Helvetica", "cn": "Microsoft YaHei", "china-s": "SimSun",
+        }
+        candidate = base14_map.get(family_lower, family)
+
+        if candidate in available:
+            font = db.font(candidate, "", int(size_pt))
+        elif family in available:
+            font = db.font(family, "", int(size_pt))
+        else:
+            font = QFont()
+            font.setPointSizeF(size_pt)
+
+        font.setBold(bold)
+        font.setItalic(italic)
+        font.setPointSizeF(size_pt)
+        return font
+
+    @staticmethod
+    def _qcolor_for_span(span: dict) -> QColor:
+        raw = int(span.get("color", 0))
+        return QColor((raw >> 16) & 255, (raw >> 8) & 255, raw & 255)
 
     def _commit_text_editor(self) -> None:
         span = self._editor_span

@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.9-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.0-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.9** — flipped the scroll‑wheel direction again to match what actually works on the end‑user's Windows machine (down = page down).
+> **Latest release: v1.2.0** — text edits are now WYSIWYG: the inline editor font family, size, bold/italic, and color all match the surrounding PDF text; `replace_text` also keeps the original font name when writing back.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,13 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.0 — 2026-11-23 — WYSIWYG text editing
+
+- `PdfPageView._open_text_editor` now builds an inline `QLineEdit` that matches the PDF span font **exactly**: family (with pymupdf base‑14 → real name mapping: Helv → Helvetica, ti → Times New Roman, cour → Courier New, china‑s → SimSun, etc.), size (pointSizeF from the span, no more `× 0.75` hack), bold / italic (from pymupdf text `flags` bits), and color (raw 24‑bit int → RGB)
+- **Qt pitfall fixed.** The global theme stylesheet had a catch‑all `QWidget { font-family: ...; font-size: 9pt; }` rule that silently overrode `setFont()` on every inline editor when it was shown. The editor's per‑widget stylesheet now explicitly writes `font-family`, `font-size`, `font-weight`, `font-style`, and `color` so the original PDF rendering survives
+- `PdfEditorEngine.replace_text` now preserves the original `span["font"]` when redrawing text after the redaction+reinsert dance, instead of always switching to `_font_for_text`'s generic fallback
+- Added `PdfPageView._qfont_for_span` and `_qcolor_for_span` static helpers that centralise font lookup / pymupdf flag decoding / color unpacking, so the same transform is used by both the UI and the engine
 
 ### v1.1.9 — 2026-11-23 — Scroll‑wheel direction, take three
 
@@ -273,7 +280,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.9** — 滚轮方向再翻一次，这次按用户实测的实际机器反馈来定（向下推 = 页面向下看）。
+> **最新版本：v1.2.0** — 文字编辑所见即所得：内联编辑器的字体、字号、粗斜体、颜色完全匹配周围 PDF 文字；保存时也保留原字体名。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -369,7 +376,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.8 已备份至 `ClaraPDFPro_Backups\1.1.7_滚轮方向反了但dirty状态才是重点`，准备 v1.2.0 时创建下一份备份。
+> v1.1.9 已备份至 `ClaraPDFPro_Backups\1.1.8_会话恢复功能`，准备 v1.2.1 时创建下一份备份。
 
 ## 后续计划
 
@@ -379,6 +386,13 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.0 — 2026-11-23 — 文字编辑所见即所得
+
+- `PdfPageView._open_text_editor` 现在构造一个内联 `QLineEdit`，字体**完全匹配** PDF span：字体族（pymupdf base14 名到真实字体的映射：Helv → Helvetica、ti → Times New Roman、cour → Courier New、china-s → SimSun 等）、字号（直接用 span 的 pointSizeF，不再乘 0.75 的 hack）、粗体/斜体（从 pymupdf text flags 位解码）、颜色（原始 24-bit int → RGB）
+- **Qt 踩坑记录。** 全局主题样式表里有一条 `QWidget { font-family: ...; font-size: 9pt; }` 的兜底规则——每当 inline editor show() 时，Qt 重新应用样式表就把 setFont() 覆盖成 9pt。给每个 editor 写的 per-widget stylesheet 现在显式写出 font-family / font-size / font-weight / font-style / color，把主题那条全局规则挡在外面
+- `PdfEditorEngine.replace_text` 在涂黑 + 重写的两步之后，现在优先用原始 `span["font"]` 重绘文字，而不是一刀切调用 `_font_for_text` 选通用 fallback
+- 新增 `PdfPageView._qfont_for_span` 和 `_qcolor_for_span` 静态 helper，统一处理字体查找 / pymupdf flag 解码 / 颜色拆包，UI 和 engine 两端用同一个转换器
 
 ### v1.1.9 — 2026-11-23 — 滚轮方向再翻一次
 

@@ -193,7 +193,7 @@ class PdfEditorEngine:
         return spans
 
     def replace_text(self, idx: int, span: dict, new_text: str) -> bool:
-        """用涂黑 + 重写的方式替换一段文本，尽量保留位置、字号与颜色。"""
+        """用涂黑 + 重写的方式替换一段文本，尽量保留位置、字号、颜色与原字体。"""
         old_text = span.get("text", "")
         if new_text == old_text:
             return False
@@ -208,7 +208,9 @@ class PdfEditorEngine:
                 text=pymupdf.PDF_REDACT_TEXT_REMOVE,
             )
             if new_text:
-                fontname = _font_for_text(new_text, int(span.get("flags", 0)))
+                # 优先用原 span.font；找不到再 fallback 到 _font_for_text
+                orig_font = str(span.get("font", "")).strip()
+                fontname = orig_font if orig_font else _font_for_text(new_text, int(span.get("flags", 0)))
                 origin = span.get("origin") or (bbox.x0, bbox.y1)
                 page.insert_text(
                     origin,
