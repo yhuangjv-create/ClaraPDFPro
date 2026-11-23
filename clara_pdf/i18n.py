@@ -325,6 +325,7 @@ STRINGS: dict[str, tuple[str, str]] = {
     "ribbon.home": ("开始", "Home"),
     "ribbon.edit": ("编辑", "Edit"),
     "ribbon.view": ("视图", "View"),
+    "ribbon.tools": ("工具", "Tools"),
     "ribbon.group_file": ("文件", "File"),
     "ribbon.group_undo": ("撤销", "Undo"),
     "ribbon.group_edit": ("编辑区", "Edit"),
@@ -336,6 +337,23 @@ STRINGS: dict[str, tuple[str, str]] = {
     "ribbon.group_page": ("页面", "Pages"),
     "ribbon.group_zoom": ("缩放", "Zoom"),
     "ribbon.group_show": ("显示区", "Display"),
+    "ribbon.group_document": ("文档", "Document"),
+    "ribbon.group_convert": ("转换", "Convert"),
+    "ribbon.group_compress": ("压缩", "Compress"),
+    "ribbon.group_organize": ("页面管理", "Organize"),
+    "ribbon.group_images": ("图片", "Images"),
+    "ribbon.group_security": ("安全", "Security"),
+    "ribbon.group_misc": ("其它", "More"),
+
+    # ---------- 工具页 ----------
+    "tools.home": ("工具首页", "Toolbox home"),
+    "tools.page_title": ("工具箱", "Toolbox"),
+    "tools.page_desc": (
+        "选择下方工具，在当前窗口中使用；「开始 / 编辑 / 视图」可随时回到 PDF 编辑器。",
+        "Pick a tool below — it opens in this window. Use Home / Edit / View to return to the PDF editor.",
+    ),
+    "editor.back_to_doc": ("返回文档", "Back to document"),
+    "editor.settings": ("设置与语言", "Settings & language"),
 
     # ---------- 关于 ----------
     "about.title": ("关于 ClaraPDFPro", "About ClaraPDFPro"),

@@ -239,6 +239,27 @@ def build_stylesheet(dark: bool = False) -> str:
         color: {c['subtext']};
         background: transparent;
     }}
+    QWidget#ToolsHome {{
+        background: {c['win']};
+    }}
+    QPushButton#ToolCard {{
+        background: {c['card']};
+        color: {c['text']};
+        border: 1px solid {c['border']};
+        border-radius: 6px;
+        padding: 10px 16px;
+        font-size: 10.5pt;
+        text-align: left;
+    }}
+    QPushButton#ToolCard:hover {{
+        background: {c['accent_light']};
+        border-color: {c['accent']};
+        color: {c['accent']};
+    }}
+    QPushButton#ToolCard:pressed {{
+        background: {c['accent_light']};
+        border-color: {c['accent_pressed']};
+    }}
     QFrame#Card {{
         background: {c['card']};
         border: 1px solid {c['border']};

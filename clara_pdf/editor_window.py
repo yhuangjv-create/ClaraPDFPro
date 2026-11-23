@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -36,6 +37,15 @@ from PySide6.QtWidgets import (
 )
 
 from .icons import make_app_icon
+from .pages import (
+    AboutPage,
+    CompressPage,
+    ConvertPage,
+    ImagesToPdfPage,
+    OrganizePage,
+    PdfToImagesPage,
+    SecurityPage,
+)
 from .pdf_editor_engine import PdfEditorEngine, PdfEngineError
 from .pdf_view import PdfPageView
 from .settings import Settings
@@ -46,6 +56,18 @@ THUMB_W = 128
 THUMB_H = 170
 THUMB_GRID_W = 134
 THUMB_GRID_H = 202
+
+# 嵌入到「工具」标签页的模块（键与 i18n 前缀一致）
+_TOOLS = (
+    ("convert", ConvertPage),
+    ("compress", CompressPage),
+    ("organize", OrganizePage),
+    ("pdf2img", PdfToImagesPage),
+    ("img2pdf", ImagesToPdfPage),
+    ("security", SecurityPage),
+    ("about", AboutPage),
+)
+_TOOL_CLASSES = dict(_TOOLS)
 
 
 class _RibbonGroup(QWidget):
@@ -136,6 +158,9 @@ class PdfEditorWindow(QMainWindow):
         self._first_show = True
         self._thumb_dpi = 45.0
         self._toolbox: QMainWindow | None = None
+        self._tool_pages: dict[str, QWidget] = {}
+        self._current_tool: str | None = None
+        self._tools_tab = 3
 
         self.setWindowIcon(make_app_icon())
         self.setWindowTitle(self.i18n.t("editor.window_title_empty"))
@@ -197,9 +222,11 @@ class PdfEditorWindow(QMainWindow):
         self.editor_page = editor
 
         self.empty_page = self._build_empty_page()
+        self.tools_page = self._build_tools_page()
         self.body = QStackedWidget()
         self.body.addWidget(self.empty_page)
         self.body.addWidget(editor)
+        self.body.addWidget(self.tools_page)
         self.setCentralWidget(self.body)
 
         # 状态栏
@@ -253,6 +280,38 @@ class PdfEditorWindow(QMainWindow):
         layout.addStretch(1)
         return page
 
+    def _build_tools_page(self) -> QWidget:
+        """工具首页：以卡片形式列出所有独立模块。"""
+        page = QWidget()
+        page.setObjectName("ToolsHome")
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(40, 30, 40, 30)
+        layout.setSpacing(6)
+
+        title = QLabel(self.i18n.t("tools.page_title"))
+        title.setObjectName("EmptyTitle")
+        desc = QLabel(self.i18n.t("tools.page_desc"))
+        desc.setObjectName("EmptyHint")
+        desc.setWordWrap(True)
+
+        grid = QGridLayout()
+        grid.setSpacing(12)
+        for i, (key, _cls) in enumerate(_TOOLS[:6]):
+            card = QPushButton(self.i18n.t(key + ".title"))
+            card.setObjectName("ToolCard")
+            card.setToolTip(self.i18n.t(key + ".desc"))
+            card.setCursor(Qt.PointingHandCursor)
+            card.setMinimumHeight(64)
+            card.clicked.connect(lambda _=False, k=key: self._show_tool(k))
+            grid.addWidget(card, i // 3, i % 3)
+
+        layout.addWidget(title)
+        layout.addWidget(desc)
+        layout.addSpacing(16)
+        layout.addLayout(grid)
+        layout.addStretch(1)
+        return page
+
     def _build_ribbon(self) -> None:
         self.ribbon = _RibbonBar()
         ribbon_bar = QToolBar()
@@ -286,7 +345,12 @@ class PdfEditorWindow(QMainWindow):
         self.act_ocr_page = ocr_menu.addAction(self.i18n.t("editor.ocr_page"))
         self.act_ocr_all = ocr_menu.addAction(self.i18n.t("editor.ocr_all"))
         self.act_ocr.setMenu(ocr_menu)
-        self.act_toolbox = QAction(self.i18n.t("editor.toolbox"), self)
+        self.act_back_doc = QAction(self.i18n.t("editor.back_to_doc"), self)
+        self.act_tools_home = QAction(self.i18n.t("tools.home"), self)
+        self.act_settings = QAction(self.i18n.t("editor.settings"), self)
+        self.tool_actions: dict[str, QAction] = {}
+        for key, _cls in _TOOLS:
+            self.tool_actions[key] = QAction(self.i18n.t(key + ".title"), self)
         self.act_mode_browse = QAction(self.i18n.t("editor.mode_browse"), self)
         self.act_mode_text = QAction(self.i18n.t("editor.mode_text"), self)
 
@@ -334,8 +398,6 @@ class PdfEditorWindow(QMainWindow):
         group.add_button(self.act_tool_note)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_ocr"))
         group.add_button(self.act_ocr, popup=True)
-        group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_tools"))
-        group.add_button(self.act_toolbox)
 
         # ---- 编辑 ----
         edit = self.ribbon.add_tab(self.i18n.t("ribbon.edit"))
@@ -368,6 +430,26 @@ class PdfEditorWindow(QMainWindow):
         group.add_button(self.act_annots)
         group.add_button(self.act_fields)
 
+        # ---- 工具 ----
+        tools = self.ribbon.add_tab(self.i18n.t("ribbon.tools"))
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_document"))
+        group.add_button(self.act_back_doc)
+        group.add_button(self.act_tools_home)
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_convert"))
+        group.add_button(self.tool_actions["convert"])
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_compress"))
+        group.add_button(self.tool_actions["compress"])
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_organize"))
+        group.add_button(self.tool_actions["organize"])
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_images"))
+        group.add_button(self.tool_actions["pdf2img"])
+        group.add_button(self.tool_actions["img2pdf"])
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_security"))
+        group.add_button(self.tool_actions["security"])
+        group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_misc"))
+        group.add_button(self.tool_actions["about"])
+        group.add_button(self.act_settings)
+
         # ---- 连接 ----
         self.act_open.triggered.connect(self._open_file)
         self.act_save.triggered.connect(self._save)
@@ -388,7 +470,12 @@ class PdfEditorWindow(QMainWindow):
         self.act_fields.toggled.connect(self.view.set_fields_visible)
         self.act_ocr_page.triggered.connect(self._ocr_current)
         self.act_ocr_all.triggered.connect(self._ocr_all)
-        self.act_toolbox.triggered.connect(self._open_toolbox)
+        self.act_back_doc.triggered.connect(self._back_to_document)
+        self.act_tools_home.triggered.connect(self._show_tools_home)
+        self.act_settings.triggered.connect(self._open_toolbox)
+        for key, action in self.tool_actions.items():
+            action.triggered.connect(lambda _=False, k=key: self._show_tool(k))
+        self.ribbon.tabs.currentChanged.connect(self._on_ribbon_tab_changed)
         self.act_mode_browse.triggered.connect(
             lambda: self.mode_combo.setCurrentIndex(self.mode_combo.findData("browse")))
         self.act_mode_text.triggered.connect(
@@ -423,6 +510,7 @@ class PdfEditorWindow(QMainWindow):
 
     # ---------------- 文档状态 ----------------
     def _show_empty(self) -> None:
+        self._current_tool = None
         self.body.setCurrentWidget(self.empty_page)
         self._set_actions_enabled(False)
         self._update_title()
@@ -434,6 +522,7 @@ class PdfEditorWindow(QMainWindow):
         self.statusBar().showMessage(self.i18n.t("editor.empty_hint"))
 
     def _attach_engine(self) -> None:
+        self._current_tool = None
         self.view.set_engine(self.engine)
         self.body.setCurrentWidget(self.editor_page)
         self._set_actions_enabled(True)
@@ -447,7 +536,74 @@ class PdfEditorWindow(QMainWindow):
         self._update_zoom_label()
         if not self.engine.has_forms():
             self.statusBar().showMessage(self.i18n.t("editor.no_form"), 8000)
+        if self.ribbon.tabs.currentIndex() != 0:
+            self.ribbon.tabs.setCurrentIndex(0)
         QTimer.singleShot(0, lambda: self._fit("width"))
+
+    # ---------------- 工具页切换 ----------------
+    def _on_ribbon_tab_changed(self, index: int) -> None:
+        if index == self._tools_tab:
+            self._current_tool = None
+            self.body.setCurrentWidget(self.tools_page)
+            self.page_label.setText("")
+            self.status_page.setText("")
+            self.status_fields.setText("")
+            self.status_zoom.setText("")
+            self.statusBar().showMessage("")
+            self._update_title()
+        else:
+            self._show_editor_body()
+
+    def _back_to_document(self) -> None:
+        if self.ribbon.tabs.currentIndex() != 0:
+            self.ribbon.tabs.setCurrentIndex(0)
+        else:
+            self._show_editor_body()
+
+    def _show_editor_body(self) -> None:
+        self._current_tool = None
+        if self.engine is not None:
+            self.body.setCurrentWidget(self.editor_page)
+            total = self.engine.page_count
+            if total:
+                text = self.i18n.t("editor.page_n", n=self.view.page_idx + 1, total=total)
+                self.page_label.setText(text)
+                self.status_page.setText(text)
+            self._update_status_fields()
+            self._update_zoom_label()
+        else:
+            self.body.setCurrentWidget(self.empty_page)
+            self.page_label.setText("")
+            self.status_page.setText("")
+            self.status_fields.setText("")
+            self.status_zoom.setText("")
+        self._update_title()
+
+    def _show_tools_home(self) -> None:
+        self._current_tool = None
+        if self.ribbon.tabs.currentIndex() != self._tools_tab:
+            self.ribbon.tabs.setCurrentIndex(self._tools_tab)
+        else:
+            self.body.setCurrentWidget(self.tools_page)
+            self._update_title()
+        self.statusBar().showMessage("")
+
+    def _show_tool(self, key: str) -> None:
+        page = self._tool_pages.get(key)
+        if page is None:
+            page = _TOOL_CLASSES[key](self.i18n)
+            self._tool_pages[key] = page
+            self.body.addWidget(page)
+        if self.ribbon.tabs.currentIndex() != self._tools_tab:
+            self.ribbon.tabs.setCurrentIndex(self._tools_tab)
+        self._current_tool = key
+        self.body.setCurrentWidget(page)
+        self.page_label.setText("")
+        self.status_page.setText("")
+        self.status_fields.setText("")
+        self.status_zoom.setText("")
+        self.statusBar().showMessage("")
+        self._update_title()
 
     def _set_actions_enabled(self, enabled: bool) -> None:
         for action in (
@@ -620,7 +776,7 @@ class PdfEditorWindow(QMainWindow):
         self._set_dpi(min(dpi_w, dpi_h))
 
     # ---------------- 模式 ----------------
-    def _current_tool(self) -> str:
+    def _current_annot_tool(self) -> str:
         for action in self.tool_group.actions():
             if action.isChecked():
                 return action.data()
@@ -632,7 +788,7 @@ class PdfEditorWindow(QMainWindow):
         mode = self.mode_combo.currentData()
         self.view.set_mode(mode)
         if mode == "annot":
-            self.view.set_annot_tool(self._current_tool())
+            self.view.set_annot_tool(self._current_annot_tool())
         elif mode == "text" and not self.view._spans:
             self.statusBar().showMessage(self.i18n.t("editor.no_text"), 5000)
 
@@ -738,6 +894,13 @@ class PdfEditorWindow(QMainWindow):
         self._update_title()
 
     def _update_title(self) -> None:
+        if self._current_tool is not None:
+            title = self.i18n.t(self._current_tool + ".title")
+            if self._current_tool == "about":
+                self.setWindowTitle(title)
+            else:
+                self.setWindowTitle(f"{title} — ClaraPDFPro")
+            return
         if self.engine is None:
             self.setWindowTitle(self.i18n.t("editor.window_title_empty"))
             return
