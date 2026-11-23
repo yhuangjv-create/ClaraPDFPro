@@ -185,10 +185,8 @@ class _SmoothScrollArea(QScrollArea):
         if delta == 0:
             event.accept()
             return
-        # Windows + PySide6: angleDelta.y > 0 表示滚轮向下推（手指远离身体），
-        # sb.value() 增大意味着页面内容向上移动 = "看更后面"，
-        # 所以直接 + delta 就是正确方向。
-        sb.setValue(sb.value() + delta)
+        # 用户实测 Windows 下 angleDelta.y > 0 时需用 - delta 方向才对
+        sb.setValue(sb.value() - delta)
         event.accept()
 
 

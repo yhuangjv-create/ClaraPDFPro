@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.8-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.9-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.8** — remembers which PDF you were editing, the page, zoom, mode, and any unsaved edits across app restarts; also reverted the mouse‑wheel direction back to the correct Windows default.
+> **Latest release: v1.1.9** — flipped the scroll‑wheel direction again to match what actually works on the end‑user's Windows machine (down = page down).
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,11 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.9 — 2026-11-23 — Scroll‑wheel direction, take three
+
+- Switched `SmoothScrollArea.wheelEvent` from `sb.value() + delta` back to `sb.value() - delta`
+- The Qt docs say angleDelta.y > 0 means the wheel rotated "down" (away from the user), but real end‑user machines report the sign they observe, not the documented one. The user tested, `- delta` is what feels natural on their Windows box
 
 ### v1.1.8 — 2026-11-23 — Restore your editing session on next launch
 
@@ -268,7 +273,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.8** — 关闭时记住正在编辑的 PDF、页码、缩放、模式和未保存内容；下次打开自动回到关闭前的状态；同时把滚轮方向修正为 Windows 默认。
+> **最新版本：v1.1.9** — 滚轮方向再翻一次，这次按用户实测的实际机器反馈来定（向下推 = 页面向下看）。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -364,7 +369,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.7 已备份至 `ClaraPDFPro_Backups\1.1.6_Word式连续滚动`，准备 v1.1.9 时创建下一份备份。
+> v1.1.8 已备份至 `ClaraPDFPro_Backups\1.1.7_滚轮方向反了但dirty状态才是重点`，准备 v1.2.0 时创建下一份备份。
 
 ## 后续计划
 
@@ -374,6 +379,11 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.9 — 2026-11-23 — 滚轮方向再翻一次
+
+- `SmoothScrollArea.wheelEvent` 从 `sb.value() + delta` 改回 `sb.value() - delta`
+- Qt 文档说 angleDelta.y > 0 代表滚轮"向下"旋转（远离用户），但真实 Windows 机器上驱动 / 触摸板实现可能有差异。用户实际试了之后 `- delta` 才是手感正常的方向，所以以实测为准
 
 ### v1.1.8 — 2026-11-23 — 下次打开自动回到上次编辑状态
 
