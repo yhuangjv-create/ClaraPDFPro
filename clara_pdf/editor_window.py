@@ -6,10 +6,19 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence, QShortcut
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QColor,
+    QIcon,
+    QKeySequence,
+    QPalette,
+    QShortcut,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -50,6 +59,7 @@ from .pages import (
 from .pdf_editor_engine import PdfEditorEngine, PdfEngineError
 from .pdf_view import PdfPageView
 from .settings import Settings
+from .theme import build_palette, build_stylesheet
 
 # 基准 DPI 对应 100% 缩放
 BASE_DPI = 110.0
@@ -340,20 +350,26 @@ class PdfEditorWindow(QMainWindow):
         ribbon_bar.addWidget(self.ribbon)
         self.addToolBar(Qt.TopToolBarArea, ribbon_bar)
 
-        # 右上角：语言切换与关于
+        # 右上角：语言切换、主题切换、关于
         self.lang_btn = QToolButton()
         self.lang_btn.setObjectName("RibbonCorner")
         self.lang_btn.setText(self.i18n.t("common.lang"))
         self.lang_btn.setToolTip(self.i18n.t("common.lang"))
         self.lang_btn.setCursor(Qt.PointingHandCursor)
         self.lang_btn.clicked.connect(self.toggle_language)
+        self.theme_btn = QToolButton()
+        self.theme_btn.setObjectName("RibbonCorner")
+        self.theme_btn.setCursor(Qt.PointingHandCursor)
+        self.theme_btn.clicked.connect(self.toggle_theme)
         self.about_btn = QToolButton()
         self.about_btn.setObjectName("RibbonCorner")
         self.about_btn.setText(self.i18n.t("nav.about"))
         self.about_btn.setCursor(Qt.PointingHandCursor)
         self.about_btn.clicked.connect(lambda: self._show_tool("about"))
         self.ribbon.add_corner(self.lang_btn)
+        self.ribbon.add_corner(self.theme_btn)
         self.ribbon.add_corner(self.about_btn)
+        self.apply_theme()
 
         # ---- 动作 ----
         self.act_open = QAction(self.i18n.t("editor.open"), self)
@@ -1075,10 +1091,51 @@ class PdfEditorWindow(QMainWindow):
 
     def showEvent(self, event) -> None:  # noqa: N802
         super().showEvent(event)
+        self._apply_frame_theme()
         if self._first_show:
             self._first_show = False
             if self.engine is not None:
                 QTimer.singleShot(0, lambda: self._fit("width"))
+
+    # ---------------- 主题切换 ----------------
+    def apply_theme(self) -> None:
+        dark = Settings().dark_mode
+        app = QApplication.instance()
+        if app is not None:
+            app.setPalette(build_palette(dark))
+            app.setStyleSheet(build_stylesheet(dark))
+        self._apply_frame_theme()
+        label_key = "common.light" if dark else "common.dark"
+        self.theme_btn.setText(self.i18n.t(label_key))
+
+    def toggle_theme(self) -> None:
+        Settings().dark_mode = not Settings().dark_mode
+        self.apply_theme()
+
+    def _apply_frame_theme(self) -> None:
+        """固定 Windows 标题栏颜色，避免被系统强调色染色。"""
+        if sys.platform != "win32" or not self.isVisible():
+            return
+        try:
+            import ctypes
+
+            hwnd = int(self.winId())
+            dwm = ctypes.windll.dwmapi
+            dwm.DwmSetWindowAttribute.argtypes = [
+                ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_uint,
+            ]
+            dark = ctypes.c_int(1 if Settings().dark_mode else 0)
+            dwm.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark), ctypes.sizeof(dark))
+
+            palette = build_palette(Settings().dark_mode)
+            window = palette.color(QPalette.ColorRole.Window)
+            text = palette.color(QPalette.ColorRole.WindowText)
+            caption = ctypes.c_uint(window.red() | (window.green() << 8) | (window.blue() << 16))
+            caption_text = ctypes.c_uint(text.red() | (text.green() << 8) | (text.blue() << 16))
+            dwm.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(caption), ctypes.sizeof(caption))
+            dwm.DwmSetWindowAttribute(hwnd, 36, ctypes.byref(caption_text), ctypes.sizeof(caption_text))
+        except Exception:
+            pass
 
     def closeEvent(self, event) -> None:  # noqa: N802
         if not self._maybe_save():
