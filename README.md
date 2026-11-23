@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.1-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.2-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.1** — the PDF viewer now fills the main window from the start: thumbnails on the left, page view on the right, and **Open** built into the viewer.
+> **Latest release: v1.1.2** — the ribbon corner now holds three buttons (language / light‑dark theme / About), Home + Edit have been merged into a single Home tab, and the app starts directly in text‑edit mode.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,13 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.2 — 2026-11-23 — Ribbon corner, merged tabs, text-edit default
+
+- Added the **light / dark theme** toggle to the ribbon corner alongside language and About; three buttons, always visible
+- Removed the redundant **Settings & language** button from the Tools tab — the corner is the single home for language and theme
+- Merged **Home + Edit** into a single **Home** tab: deduplicated the annotate tools and kept every unique control (file, undo, mode, annotate, OCR)
+- Switched the default mode on startup to **text‑edit** instead of form‑fill, so double‑clicking text is ready to go from frame one
 
 ### v1.1.1 — 2026-11-23 — The editor view is always embedded in the main window
 
@@ -223,7 +230,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.1** — PDF 视图启动即占据主窗口：左侧缩略图、右侧页面视图，视图内直接提供「打开」。
+> **最新版本：v1.1.2** — 功能区右上角固定「语言 / 浅色深色 / 关于」三个按钮，原「开始」与「编辑」标签页合并为一个「开始」，启动即进入「编辑文字」模式。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -319,7 +326,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.0 已备份至 `ClaraPDFPro_Backups\1.1.0_模块融入功能区`，准备 v1.1.2 时创建下一份备份。
+> v1.1.1 已备份至 `ClaraPDFPro_Backups\1.1.1_右上角主题切换与合并编辑区`，准备 v1.1.3 时创建下一份备份。
 
 ## 后续计划
 
@@ -329,6 +336,13 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.2 — 2026-11-23 — 功能区右上角、标签合并、默认编辑文字
+
+- 在功能区右上角新增 **浅色 / 深色** 主题切换按钮，与语言、关于并列，始终可见
+- 从工具标签页移除重复的 **设置与语言** 按钮——语言与主题统一在右上角管理
+- 将 **开始 + 编辑** 合并为一个 **开始** 标签页：批注工具去重，保留全部唯一项（文件、撤销、模式、批注、OCR）
+- 启动默认模式改为 **编辑文字**，不再落在表单模式；双击文字即可改写
 
 ### v1.1.1 — 2026-11-23 — 编辑器视图常驻主窗口
 
