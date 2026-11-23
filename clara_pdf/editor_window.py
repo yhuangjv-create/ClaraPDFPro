@@ -412,9 +412,9 @@ class PdfEditorWindow(QMainWindow):
         self.mode_combo = QComboBox()
         self.mode_combo.setFixedWidth(112)
         self.mode_combo.setMinimumHeight(26)
+        self.mode_combo.addItem(self.i18n.t("editor.mode_text"), "text")
         self.mode_combo.addItem(self.i18n.t("editor.mode_form"), "form")
         self.mode_combo.addItem(self.i18n.t("editor.mode_browse"), "browse")
-        self.mode_combo.addItem(self.i18n.t("editor.mode_text"), "text")
         self.mode_combo.addItem(self.i18n.t("editor.mode_annot"), "annot")
 
         self.zoom_combo = QComboBox()
