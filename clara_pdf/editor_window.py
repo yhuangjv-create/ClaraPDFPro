@@ -171,7 +171,6 @@ class PdfEditorWindow(QMainWindow):
         self._dirty = False
         self._first_show = True
         self._thumb_dpi = 45.0
-        self._toolbox: QMainWindow | None = None
         self._tool_pages: dict[str, QWidget] = {}
         self._current_tool: str | None = None
         self._tools_tab = 3
@@ -381,7 +380,6 @@ class PdfEditorWindow(QMainWindow):
         self.act_ocr.setMenu(ocr_menu)
         self.act_back_doc = QAction(self.i18n.t("editor.back_to_doc"), self)
         self.act_tools_home = QAction(self.i18n.t("tools.home"), self)
-        self.act_settings = QAction(self.i18n.t("editor.settings"), self)
         self.tool_actions: dict[str, QAction] = {}
         for key, _cls in _TOOLS:
             self.tool_actions[key] = QAction(self.i18n.t(key + ".title"), self)
@@ -482,7 +480,6 @@ class PdfEditorWindow(QMainWindow):
         group.add_button(self.tool_actions["security"])
         group = self.ribbon.add_group(tools, self.i18n.t("ribbon.group_misc"))
         group.add_button(self.tool_actions["about"])
-        group.add_button(self.act_settings)
 
         # ---- 连接 ----
         self.act_open.triggered.connect(self._open_file)
@@ -506,7 +503,8 @@ class PdfEditorWindow(QMainWindow):
         self.act_ocr_all.triggered.connect(self._ocr_all)
         self.act_back_doc.triggered.connect(self._back_to_document)
         self.act_tools_home.triggered.connect(self._show_tools_home)
-        self.act_settings.triggered.connect(self._open_toolbox)
+
+        # ---- 工具栏 ----
         for key, action in self.tool_actions.items():
             action.triggered.connect(lambda _=False, k=key: self._show_tool(k))
         self.ribbon.tabs.currentChanged.connect(self._on_ribbon_tab_changed)
@@ -694,20 +692,6 @@ class PdfEditorWindow(QMainWindow):
                 QMessageBox.warning(self, self.i18n.t("common.error"),
                                     self.i18n.t("editor.open_error", err=exc))
                 return None
-
-    def _open_toolbox(self) -> None:
-        from .main_window import MainWindow
-
-        if self._toolbox is None:
-            self._toolbox = MainWindow()
-            self._toolbox.setAttribute(Qt.WA_DeleteOnClose, True)
-            self._toolbox.destroyed.connect(self._on_toolbox_destroyed)
-        self._toolbox.show()
-        self._toolbox.raise_()
-        self._toolbox.activateWindow()
-
-    def _on_toolbox_destroyed(self, _obj=None) -> None:
-        self._toolbox = None
 
     # ---------------- 语言切换 ----------------
     def toggle_language(self) -> None:
