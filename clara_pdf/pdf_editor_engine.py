@@ -38,13 +38,30 @@ _BASE14 = {
 }
 
 
+def _is_cjk_char(ch: str) -> bool:
+    code = ord(ch)
+    return (0x2E80 <= code <= 0x9FFF or 0xF900 <= code <= 0xFAFF
+            or 0xFF00 <= code <= 0xFFEF)
+
+
 def _is_cjk(text: str) -> bool:
-    for ch in text:
-        code = ord(ch)
-        if (0x2E80 <= code <= 0x9FFF or 0xF900 <= code <= 0xFAFF
-                or 0xFF00 <= code <= 0xFFEF):
-            return True
-    return False
+    return any(_is_cjk_char(ch) for ch in text)
+
+
+def _clean_ocr_text(text: str) -> str:
+    """Windows OCR 会在汉字之间插入空格，写回文字层前去掉这些空格。"""
+    text = text.replace("\u00a0", " ").strip()
+    if not _is_cjk(text):
+        return text
+    out: list[str] = []
+    for i, ch in enumerate(text):
+        if ch == " ":
+            prev = out[-1] if out else ""
+            nxt = text[i + 1] if i + 1 < len(text) else ""
+            if _is_cjk_char(prev) or _is_cjk_char(nxt):
+                continue
+        out.append(ch)
+    return "".join(out)
 
 
 def _font_for_text(text: str, flags: int) -> str:
@@ -260,6 +277,50 @@ class PdfEditorEngine:
             return sum(1 for _ in self._page(idx).annots())
         except Exception:  # noqa: BLE001
             return 0
+
+    # ---------------- OCR ----------------
+    def ocr_page(self, idx: int, lang: str | None = None,
+                 dpi: float = 200.0, force: bool = False) -> int | None:
+        """识别一页文字并写入不可见文字层，返回写入的行数。
+
+        页面已有可选中文字且未指定 ``force`` 时返回 ``None``（跳过）。
+        """
+        from . import ocr  # 延迟导入：缺少 winrt / easyocr 时不影响其它功能
+
+        page = self._page(idx)
+        if not force and len(page.get_text("text").strip()) >= 10:
+            return None
+        scale = float(dpi) / 72.0
+        pix = page.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False)
+        lines = ocr.ocr_pixmap(pix, lang)
+        if not lines:
+            return 0
+        self._push_undo()
+        written = 0
+        try:
+            for line in lines:
+                text = _clean_ocr_text(line["text"])
+                if not text:
+                    continue
+                x0, y0, x1, y1 = line["bbox"]
+                height = max(1.0, (y1 - y0) / scale)
+                page.insert_text(
+                    (x0 / scale, (y1 - (y1 - y0) * 0.2) / scale),
+                    text,
+                    fontsize=max(4.0, min(48.0, height * 0.8)),
+                    fontname=_font_for_text(text, 0),
+                    color=(0, 0, 0),
+                    render_mode=3,  # 3 = 不可见，仅用于复制与检索
+                )
+                written += 1
+            if written == 0:
+                self._undo.pop()
+                return 0
+        except Exception as exc:  # noqa: BLE001
+            self._undo.pop()
+            raise PdfEngineError(f"OCR 文字层写入失败：{exc}") from exc
+        self._dirty = True
+        return written
 
     # ---------------- 表单 ----------------
     def has_forms(self) -> bool:

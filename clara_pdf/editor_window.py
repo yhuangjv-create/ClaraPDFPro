@@ -20,7 +20,9 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMenu,
     QMessageBox,
+    QProgressDialog,
     QScrollArea,
     QToolBar,
     QVBoxLayout,
@@ -189,10 +191,17 @@ class PdfEditorWindow(QMainWindow):
         self.act_fields = QAction(self.i18n.t("editor.toggle_fields"), self)
         self.act_fields.setCheckable(True)
         self.act_fields.setChecked(True)
+        self.act_ocr = QAction(self.i18n.t("editor.ocr"), self)
+        ocr_menu = QMenu(self)
+        self.act_ocr_page = ocr_menu.addAction(self.i18n.t("editor.ocr_page"))
+        self.act_ocr_all = ocr_menu.addAction(self.i18n.t("editor.ocr_all"))
+        self.act_ocr.setMenu(ocr_menu)
         tb.addWidget(self.mode_combo)
         tb.addWidget(self.annot_combo)
         tb.addAction(self.act_annots)
         tb.addAction(self.act_fields)
+        tb.addSeparator()
+        tb.addAction(self.act_ocr)
 
         self.act_save.triggered.connect(self._save)
         self.act_save_as.triggered.connect(self._save_as)
@@ -211,6 +220,8 @@ class PdfEditorWindow(QMainWindow):
             lambda _i: self.view.set_annot_tool(self.annot_combo.currentData()))
         self.act_annots.toggled.connect(self.view.set_annots_visible)
         self.act_fields.toggled.connect(self.view.set_fields_visible)
+        self.act_ocr_page.triggered.connect(self._ocr_current)
+        self.act_ocr_all.triggered.connect(self._ocr_all)
 
     def _build_shortcuts(self) -> None:
         QShortcut(QKeySequence("Ctrl+S"), self, activated=self._save)
@@ -326,6 +337,68 @@ class PdfEditorWindow(QMainWindow):
             self.view.set_annot_tool(self.annot_combo.currentData())
         elif mode == "text" and not self.view._spans:
             self.statusBar().showMessage(self.i18n.t("editor.no_text"), 5000)
+
+    # ---------------- OCR ----------------
+    def _ocr_current(self) -> None:
+        self._run_ocr([self.view.page_idx])
+
+    def _ocr_all(self) -> None:
+        self._run_ocr(range(self.engine.page_count))
+
+    def _run_ocr(self, pages) -> None:
+        """逐页识别文字并写入不可见文字层。"""
+        from . import ocr
+
+        if not ocr.backend_available():
+            QMessageBox.warning(self, self.i18n.t("common.info"),
+                                self.i18n.t("editor.ocr_unavailable"))
+            return
+        pages = list(pages)
+        lang = ocr.pick_language()
+        progress = None
+        if len(pages) > 1:
+            progress = QProgressDialog(
+                self.i18n.t("editor.ocr_running"), self.i18n.t("common.cancel"),
+                0, len(pages), self)
+            progress.setWindowTitle(self.i18n.t("editor.ocr"))
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.setValue(0)
+        recognized = skipped = lines = 0
+        try:
+            for i, idx in enumerate(pages):
+                if progress is not None:
+                    if progress.wasCanceled():
+                        break
+                    progress.setLabelText(self.i18n.t(
+                        "editor.ocr_progress", n=idx + 1, total=self.engine.page_count))
+                    QApplication.processEvents()
+                try:
+                    n = self.engine.ocr_page(idx, lang)
+                except Exception as exc:  # noqa: BLE001
+                    self.statusBar().showMessage(str(exc), 6000)
+                    continue
+                if n is None:
+                    skipped += 1
+                elif n:
+                    recognized += 1
+                    lines += n
+                if progress is not None:
+                    progress.setValue(i + 1)
+                    QApplication.processEvents()
+        finally:
+            if progress is not None:
+                progress.close()
+        if recognized:
+            self.view.refresh()
+            self._set_dirty(True)
+            self._update_undo_redo()
+            self.statusBar().showMessage(
+                self.i18n.t("editor.ocr_done", pages=recognized, lines=lines), 8000)
+        elif skipped:
+            self.statusBar().showMessage(self.i18n.t("editor.ocr_skip"), 8000)
+        else:
+            self.statusBar().showMessage(self.i18n.t("editor.ocr_empty"), 8000)
 
     # ---------------- 编辑反馈 ----------------
     def _on_field_changed(self) -> None:

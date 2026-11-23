@@ -6,3 +6,8 @@ openpyxl>=3.1
 fonttools>=4.40
 cryptography>=3.1
 pywin32>=306
+# OCR：调用 Windows 自带识别引擎（Windows 10/11）
+winrt-Windows.Media.Ocr
+winrt-Windows.Graphics.Imaging
+winrt-Windows.Storage.Streams
+winrt-Windows.Globalization

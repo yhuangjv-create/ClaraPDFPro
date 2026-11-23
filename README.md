@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.7-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.8-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.7** — WYSIWYG text editing plus annotations: highlight, underline and sticky notes.
+> **Latest release: v1.0.8** — OCR for scanned PDFs: a searchable, selectable text layer built with the Windows OCR engine.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -17,7 +17,7 @@ ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and 
 
 | Module | Capabilities |
 | --- | --- |
-| **Edit PDF** | Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
+| **Edit PDF** | Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; **OCR** — recognize the current page or all pages with the built-in Windows engine and add an invisible, searchable text layer; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
 | **Convert** | PDF → Word (headings, paragraphs, tables, images rebuilt), PDF → Excel (tables detected per page), Word → PDF, Excel → PDF |
 | **Compress** | Compress by image DPI + JPEG quality, compress to a target file size, maximum compression by rasterizing pages |
 | **Organize** | Thumbnail page manager: rotate, delete, reorder and save; extract page ranges; split every *N* pages; merge multiple PDFs |
@@ -31,6 +31,7 @@ ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and 
 - Windows 10 / 11
 - Python 3.10 or newer
 - Microsoft Word and Excel — required only for Word/Excel → PDF conversion (uses Office COM automation)
+- A Windows OCR language pack — built into Windows 10 / 11 (Chinese and English are usually installed already); OCR needs no model download and no network
 
 ## Installation
 
@@ -64,9 +65,10 @@ ClaraPDFPro/
     ├── pages.py              # Tool pages
     ├── page_editor.py        # Thumbnail page manager dialog
     ├── pdf_engine.py         # Page ops, merge/split, images, encryption
-    ├── pdf_editor_engine.py  # Long-lived document: render, form fields, save, undo
+    ├── pdf_editor_engine.py  # Long-lived document: render, form fields, OCR, save, undo
     ├── pdf_view.py           # Page painter with inline field editors
     ├── editor_window.py      # Editor main window (toolbar, thumbnails, status bar)
+    ├── ocr.py                # Windows OCR wrapper (optional EasyOCR fallback)
     ├── converter.py          # PDF ↔ Word / Excel
     ├── compressor.py         # PDF compression
     ├── tool_widgets.py       # Reusable widgets and task base
@@ -102,16 +104,24 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.6 is archived at `ClaraPDFPro_Backups\1.0.6_新增PDF编辑器与表单填写`. The next backup will be created when v1.0.8 is prepared.
+> v1.0.7 is archived at `ClaraPDFPro_Backups\1.0.7_新增文本编辑与批注`. The next backup will be created when v1.0.9 is prepared.
 
 ## Roadmap
 
-- OCR for scanned documents — next
+- OCR quality tuning: deskew and multi-column layout handling
 - Batch conversion queue
 
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.8 — 2026-11-23 — OCR for scanned documents
+
+- New **OCR** menu in the editor toolbar: recognize the current page or every page, with a cancellable progress dialog
+- Recognition uses the built-in **Windows OCR engine** (`Windows.Media.Ocr`), so there is no model download and no network access; Chinese and English are used when their language packs are present
+- Recognized lines are written back as an **invisible text layer** placed on the original text positions, making scanned pages selectable, searchable and copyable without changing how they look
+- Pages that already contain text are skipped; OCR results are covered by undo / redo and are saved with the document
+- If the Windows OCR components are missing, an optional **EasyOCR** fallback is used when `easyocr` is installed
 
 ### v1.0.7 — 2026-11-23 — WYSIWYG text editing and annotations
 
@@ -188,7 +198,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.7** — 所见即所得文本编辑，以及高亮、下划线、便签三种批注。
+> **最新版本：v1.0.8** — 扫描件 OCR：用 Windows 内置识别引擎生成可复制、可检索的文字层。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -197,7 +207,7 @@ ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF �
 
 | 模块 | 能力 |
 | --- | --- |
-| **PDF 编辑** | 填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
+| **PDF 编辑** | 填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；**OCR**——用 Windows 内置引擎识别当前页或全部页面，写入不可见的可检索文字层；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
 | **格式转换** | PDF → Word（还原标题、段落、表格与图片）、PDF → Excel（逐页识别表格）、Word → PDF、Excel → PDF |
 | **PDF 压缩** | 按图片 PPI + JPEG 质量压缩、按目标体积压缩、极限压缩（整页转图片） |
 | **页面管理** | 缩略图管理器：旋转、删除、排序后另存；提取指定页；每 N 页拆分；多文件合并 |
@@ -211,6 +221,7 @@ ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF �
 - Windows 10 / 11
 - Python 3.10 及以上
 - Microsoft Word / Excel —— 仅 Word / Excel 转 PDF 时需要（通过 Office COM 调用）
+- Windows OCR 语言包 —— Windows 10 / 11 自带（通常已含中文与英文）；OCR 无需下载模型，也不联网
 
 ## 安装
 
@@ -244,9 +255,10 @@ ClaraPDFPro/
     ├── pages.py              # 各工具页面
     ├── page_editor.py        # 缩略图页面管理器
     ├── pdf_engine.py         # 页面操作、合并拆分、图片、加密
-    ├── pdf_editor_engine.py  # 长开文档：渲染、表单字段、保存、撤销
+    ├── pdf_editor_engine.py  # 长开文档：渲染、表单字段、OCR、保存、撤销
     ├── pdf_view.py           # 页面绘制与字段内联编辑器
     ├── editor_window.py      # 编辑器主窗口（工具栏、缩略图、状态栏）
+    ├── ocr.py                # Windows OCR 封装（可选 EasyOCR 后备）
     ├── converter.py          # PDF ↔ Word / Excel
     ├── compressor.py         # PDF 压缩
     ├── tool_widgets.py       # 复用组件与任务基类
@@ -282,16 +294,24 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.6 已备份至 `ClaraPDFPro_Backups\1.0.6_新增PDF编辑器与表单填写`，准备 v1.0.8 时创建下一份备份。
+> v1.0.7 已备份至 `ClaraPDFPro_Backups\1.0.7_新增文本编辑与批注`，准备 v1.0.9 时创建下一份备份。
 
 ## 后续计划
 
-- 扫描件 OCR —— 下一版本
+- OCR 质量优化：倾斜校正与多栏排版处理
 - 批量转换队列
 
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.8 — 2026-11-23 — 扫描件 OCR
+
+- 编辑器工具栏新增 **OCR** 菜单：识别当前页或全部页面，识别过程带可取消的进度条
+- 识别使用 **Windows 内置 OCR 引擎**（`Windows.Media.Ocr`），无需下载模型、无需联网；系统装有中文 / 英文语言包时自动选用
+- 识别结果按原始位置写回**不可见文字层**，扫描件因此可选中、可搜索、可复制，页面外观完全不变
+- 已有文字层的页面自动跳过；识别结果纳入撤销 / 重做，并随文档保存
+- 若系统缺少 Windows OCR 组件且已安装 `easyocr`，则自动改用 **EasyOCR** 后备
 
 ### v1.0.7 — 2026-11-23 — 所见即所得文本编辑与批注
 

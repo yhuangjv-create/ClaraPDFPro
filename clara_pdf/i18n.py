@@ -247,8 +247,8 @@ STRINGS: dict[str, tuple[str, str]] = {
     # ---------- PDF 编辑器 ----------
     "editor.title": ("PDF 编辑器", "PDF Editor"),
     "editor.desc": (
-        "直接编辑 PDF：填写表单、勾选复选框，支持撤销 / 重做与原地保存。",
-        "Edit PDFs directly: fill forms, toggle checkboxes, with undo / redo and in-place save.",
+        "直接编辑 PDF：填写表单、勾选复选框，支持撤销 / 重做与原地保存；还能对扫描件做 OCR，生成可复制检索的文字层。",
+        "Edit PDFs directly: fill forms, toggle checkboxes, with undo / redo and in-place save; OCR scanned pages to add a searchable text layer.",
     ),
     "editor.open_btn": ("打开编辑器…", "Open editor…"),
     "editor.window_title": ("{name} — PDF 编辑器", "{name} — PDF Editor"),
@@ -292,6 +292,26 @@ STRINGS: dict[str, tuple[str, str]] = {
     "editor.open_error": ("无法打开 PDF：{err}", "Cannot open PDF: {err}"),
     "editor.status_fields": ("{n} 个字段", "{n} fields"),
     "editor.thumb_title": ("页面", "Pages"),
+    "editor.ocr": ("OCR 文字识别", "OCR"),
+    "editor.ocr_page": ("识别当前页", "Recognize this page"),
+    "editor.ocr_all": ("识别全部页面", "Recognize all pages"),
+    "editor.ocr_running": ("正在识别文字…", "Recognizing text…"),
+    "editor.ocr_progress": (
+        "正在识别第 {n} / {total} 页…", "Recognizing page {n} / {total}…"),
+    "editor.ocr_done": (
+        "OCR 完成：{pages} 页，写入 {lines} 行文字。",
+        "OCR finished: {pages} page(s), {lines} text line(s) added."),
+    "editor.ocr_skip": (
+        "这些页面已包含文字层，无需识别。",
+        "These pages already contain text; nothing to recognize."),
+    "editor.ocr_empty": ("未识别到文字。", "No text was recognized."),
+    "editor.ocr_unavailable": (
+        "未找到可用的 OCR 组件。请确认 Windows 已安装 OCR 语言包，"
+        "或执行：pip install winrt-Windows.Media.Ocr winrt-Windows.Graphics.Imaging "
+        "winrt-Windows.Storage.Streams winrt-Windows.Globalization",
+        "No OCR engine is available. Make sure a Windows OCR language pack is installed, "
+        "or run: pip install winrt-Windows.Media.Ocr winrt-Windows.Graphics.Imaging "
+        "winrt-Windows.Storage.Streams winrt-Windows.Globalization"),
 
     # ---------- 关于 ----------
     "about.title": ("关于 ClaraPDFPro", "About ClaraPDFPro"),
@@ -302,8 +322,8 @@ STRINGS: dict[str, tuple[str, str]] = {
     "about.features": ("功能", "Features"),
     "about.tech": ("技术栈", "Built with"),
     "about.feature_list": (
-        "PDF ↔ Word / Excel 互转 · PDF 压缩 · 页面重排 / 拆分 / 合并 · PDF 转图片 · 图片转 PDF · 加密解密",
-        "PDF ↔ Word / Excel · Compression · Page organize / split / merge · PDF to images · Images to PDF · Encryption",
+        "PDF ↔ Word / Excel 互转 · PDF 压缩 · 页面重排 / 拆分 / 合并 · PDF 转图片 · 图片转 PDF · 加密解密 · 表单填写与批注 · OCR 文字识别",
+        "PDF ↔ Word / Excel · Compression · Page organize / split / merge · PDF to images · Images to PDF · Encryption · Form filling & annotations · OCR",
     ),
 
     # ---------- 状态栏 ----------
