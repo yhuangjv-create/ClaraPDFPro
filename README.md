@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.6-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.7-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.6** — the viewer now stacks every page vertically into one long canvas so the mouse wheel scrolls across all pages, Word-style, without any page‑flip boundaries.
+> **Latest release: v1.1.7** — flipped the mouse‑wheel direction so it now matches Windows default behaviour (scroll down = page down).
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,11 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.7 — 2026-11-23 — Mouse wheel direction fixed
+
+- PySide6 on Windows reports wheel motion with the sign opposite to the user's intuition: rolling the wheel "down" (away from you) produced a positive `angleDelta.y()`, but feeding that straight into the scroll bar made the page move **up**
+- Switched from `sb.setValue(sb.value() + delta)` to `sb.setValue(sb.value() - delta)`, so the direction now matches the OS (scroll down → page down, scroll up → page up)
 
 ### v1.1.6 — 2026-11-23 — Continuous vertical scrolling like Word
 
@@ -255,7 +260,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.6** — 所有页垂直堆叠成一张长画布，鼠标滚轮直接穿过全部页面，像 Word 那样丝滑，不再有翻页边界。
+> **最新版本：v1.1.7** — 滚轮方向修好了，现在和 Windows 默认一致（向下滚 = 页面向下看）。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -351,7 +356,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.5 已备份至 `ClaraPDFPro_Backups\1.1.4_滚轮触边翻页`，准备 v1.1.7 时创建下一份备份。
+> v1.1.6 已备份至 `ClaraPDFPro_Backups\1.1.5_滚轮直接驱动滚动条`，准备 v1.1.8 时创建下一份备份。
 
 ## 后续计划
 
@@ -361,6 +366,11 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.7 — 2026-11-23 — 滚轮方向修正
+
+- PySide6 on Windows 的 `angleDelta.y()` 符号和用户直觉相反：滚轮向下推 `delta` 是正的，但直接加到 sb 上页面反而往上走
+- 从 `sb.value() + delta` 改成 `sb.value() - delta`，方向现在符合 OS 默认（向下滚 = 页面内容向下、看更后面）
 
 ### v1.1.6 — 2026-11-23 — Word 式连续垂直滚动
 

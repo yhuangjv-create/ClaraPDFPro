@@ -183,7 +183,9 @@ class _SmoothScrollArea(QScrollArea):
         if delta == 0:
             event.accept()
             return
-        sb.setValue(sb.value() + delta)
+        # PySide6 on Windows 下 angleDelta.y() 符号与用户直觉相反，
+        # 需要取反才能让滚轮方向符合预期（手指向下 → sb 增大 → 看后面内容）
+        sb.setValue(sb.value() - delta)
         event.accept()
 
 
