@@ -116,6 +116,20 @@ class PdfPageView(QWidget):
         self._sel_rect: QRect | None = None
 
     # ---------------- 渲染 ----------------
+    def set_engine(self, engine: PdfEditorEngine | None) -> None:
+        """切换/清空当前文档，重置选择与内联编辑器。"""
+        self._close_editor()
+        self.engine = engine
+        self.page_idx = 0
+        self._pixmap = None
+        self._fields = []
+        self._spans = []
+        self._hover_span = None
+        self._hover_xref = None
+        self._sel_start = None
+        self._sel_rect = None
+        self.update()
+
     def set_mode(self, mode: str) -> None:
         self._mode = mode
         self._close_editor()
@@ -133,7 +147,7 @@ class PdfPageView(QWidget):
         self.update()
 
     def _load_spans(self) -> None:
-        if self._mode == "text":
+        if self.engine is not None and self._mode == "text":
             self._spans = self.engine.text_spans(self.page_idx)
         else:
             self._spans = []
@@ -154,6 +168,8 @@ class PdfPageView(QWidget):
 
     def show_page(self, idx: int) -> None:
         self._close_editor()
+        if self.engine is None:
+            return
         self.page_idx = max(0, min(idx, self.engine.page_count - 1))
         self._pixmap, self.scale = self.engine.render_page(
             self.page_idx, dpi=self.dpi, annots=self._annots_visible)

@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QHBoxLayout,
-    QInputDialog,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -22,10 +21,8 @@ from PySide6.QtWidgets import (
 
 from . import __version__
 from . import compressor, converter, pdf_engine
-from .editor_window import PdfEditorWindow
 from .fileutils import default_output, human_size
 from .page_editor import PageManagerDialog
-from .pdf_editor_engine import PdfEditorEngine, PdfEngineError
 from .settings import Settings
 from .tool_widgets import FileRow, MultiFileRow, ToolPage, error_box, result_box
 
@@ -717,85 +714,3 @@ class AboutPage(ToolPage):
         body.setObjectName("Hint")
         tech.add(body)
         tech.add(_hint(i18n.t("about.desc")))
-
-
-class EditorPage(ToolPage):
-    """PDF 编辑器入口：选择文件后打开编辑器主窗口。"""
-
-    _open_windows: list[PdfEditorWindow] = []
-
-    def __init__(self, i18n, parent=None) -> None:
-        super().__init__(i18n, "editor.title", "editor.desc", parent)
-
-        card = self.add_card()
-        self.input = FileRow(i18n, "filter.pdf")
-        self.info = _hint("")
-        self.open_btn = QPushButton(i18n.t("editor.open_btn"))
-        self.open_btn.setObjectName("PrimaryButton")
-        self.clear_btn = QPushButton(i18n.t("common.clear"))
-
-        card.add(_field(i18n.t("common.input"), self.input))
-        card.add(_field("", self.info))
-        card.add(_button_row(self.open_btn, self.clear_btn))
-
-        self.input.changed.connect(self._on_input)
-        self.open_btn.clicked.connect(self._open)
-        self.clear_btn.clicked.connect(self._clear)
-
-    def _on_input(self) -> None:
-        src = self.input.path()
-        if not src or not Path(src).exists():
-            self.info.setText("")
-            return
-        info = pdf_engine.pdf_info(src)
-        if info["error"]:
-            self.info.setText(info["error"])
-        else:
-            self.info.setText(self.i18n.t(
-                "status.file_info",
-                name=Path(src).name,
-                pages=info["pages"],
-                size=human_size(info["size"]),
-            ))
-
-    def _clear(self) -> None:
-        if self.is_busy():
-            return
-        self.input.set_path("")
-        self.info.setText("")
-
-    def _open(self) -> None:
-        src = self.input.path()
-        if not src or not Path(src).exists():
-            error_box(self, self.i18n, self.i18n.t("common.select_file"))
-            return
-        engine = self._open_engine(src)
-        if engine is None:
-            return
-        Settings().last_dir = str(Path(src).parent)
-        win = PdfEditorWindow(engine, self.i18n, self.window())
-        win.setAttribute(Qt.WA_DeleteOnClose, True)
-        EditorPage._open_windows.append(win)
-        win.destroyed.connect(
-            lambda _o=None, w=win: EditorPage._open_windows.remove(w)
-            if w in EditorPage._open_windows else None)
-        win.show()
-        win.raise_()
-        win.activateWindow()
-
-    def _open_engine(self, src: str):
-        """打开引擎；加密文档循环询问密码，返回 None 表示用户取消。"""
-        password = ""
-        while True:
-            try:
-                return PdfEditorEngine(src, password)
-            except PdfEngineError:
-                pw, ok = QInputDialog.getText(
-                    self, self.i18n.t("editor.need_password"),
-                    self.i18n.t("common.password"), echo=QLineEdit.Password)
-                if not ok:
-                    return None
-                password = pw
-            except Exception as exc:  # noqa: BLE001
-                error_box(self, self.i18n, self.i18n.t("editor.open_error", err=exc))
-                return None

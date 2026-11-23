@@ -24,7 +24,6 @@ from .pages import (
     AboutPage,
     CompressPage,
     ConvertPage,
-    EditorPage,
     ImagesToPdfPage,
     OrganizePage,
     PdfToImagesPage,
@@ -34,7 +33,6 @@ from .settings import Settings
 from .theme import build_palette, build_stylesheet
 
 _NAV = (
-    ("editor", "nav.editor", EditorPage),
     ("convert", "nav.convert", ConvertPage),
     ("compress", "nav.compress", CompressPage),
     ("organize", "nav.organize", OrganizePage),
@@ -52,7 +50,7 @@ class MainWindow(QMainWindow):
         self.i18n = I18n(self.settings.language)
         self._pages: dict[str, QWidget] = {}
         self._nav_buttons: dict[str, QToolButton] = {}
-        self._current = "editor"
+        self._current = "convert"
 
         self.setWindowTitle(f"{APP_NAME} {__version__}")
         self.setWindowIcon(make_app_icon())
@@ -223,7 +221,7 @@ class MainWindow(QMainWindow):
         self._rebuild_for_language()
 
     def _rebuild_for_language(self) -> None:
-        current = self._current if self._current in self._nav_buttons else "editor"
+        current = self._current if self._current in self._nav_buttons else "convert"
         old = self.takeCentralWidget()
         self._pages.clear()
         self._nav_buttons.clear()

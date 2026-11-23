@@ -2,22 +2,22 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.8-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.9-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.8** — OCR for scanned PDFs: a searchable, selectable text layer built with the Windows OCR engine.
+> **Latest release: v1.0.9** — the app now opens straight into the PDF editor, with an Office-style ribbon (Home / Edit / View).
 > **[→ Jump to Changelog](#changelog)**
 
-ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
+ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
 
 ## Features
 
 | Module | Capabilities |
 | --- | --- |
-| **Edit PDF** | Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; **OCR** — recognize the current page or all pages with the built-in Windows engine and add an invisible, searchable text layer; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
+| **Edit PDF** | The app opens directly into the editor, with an **Office-style ribbon** (**Home / Edit / View**) for open, save, save-as, undo / redo, mode and annotation tools, OCR, page navigation, zoom and display toggles. Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; **OCR** — recognize the current page or all pages with the built-in Windows engine and add an invisible, searchable text layer; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
 | **Convert** | PDF → Word (headings, paragraphs, tables, images rebuilt), PDF → Excel (tables detected per page), Word → PDF, Excel → PDF |
 | **Compress** | Compress by image DPI + JPEG quality, compress to a target file size, maximum compression by rasterizing pages |
 | **Organize** | Thumbnail page manager: rotate, delete, reorder and save; extract page ranges; split every *N* pages; merge multiple PDFs |
@@ -45,10 +45,10 @@ Or simply double-click `run.bat` (starts silently, without a console window).
 
 ## Quick Start
 
-1. Pick a tool from the left sidebar.
-2. Choose the source file — the output path is suggested automatically.
-3. Adjust options (or keep the defaults).
-4. Click the primary button and wait for the completion dialog.
+1. The app opens directly in the **PDF editor** — click **Open** on the ribbon (or the button in the centre) and pick a PDF.
+2. Work with the **Home / Edit / View** tabs: choose the mode and annotation tool, use OCR, navigate pages, zoom; **Ctrl+S** saves.
+3. Click **Toolbox** in the Home tab to open the other utilities: conversion, compression, page organization, image export and security.
+4. In a tool, choose the source file — the output path is suggested automatically — adjust options and click the primary button.
 
 ## Project Structure
 
@@ -61,13 +61,13 @@ ClaraPDFPro/
 ├── README.md
 └── clara_pdf/
     ├── __init__.py           # App name / version
-    ├── main_window.py        # Main window and navigation
+    ├── main_window.py        # Toolbox window and navigation
     ├── pages.py              # Tool pages
     ├── page_editor.py        # Thumbnail page manager dialog
     ├── pdf_engine.py         # Page ops, merge/split, images, encryption
     ├── pdf_editor_engine.py  # Long-lived document: render, form fields, OCR, save, undo
     ├── pdf_view.py           # Page painter with inline field editors
-    ├── editor_window.py      # Editor main window (toolbar, thumbnails, status bar)
+    ├── editor_window.py      # Editor main window (Office-style ribbon, thumbnails, status bar)
     ├── ocr.py                # Windows OCR wrapper (optional EasyOCR fallback)
     ├── converter.py          # PDF ↔ Word / Excel
     ├── compressor.py         # PDF compression
@@ -104,7 +104,7 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.7 is archived at `ClaraPDFPro_Backups\1.0.7_新增文本编辑与批注`. The next backup will be created when v1.0.9 is prepared.
+> v1.0.8 is archived at `ClaraPDFPro_Backups\1.0.8_新增扫描件OCR`. The next backup will be created when v1.1.0 is prepared.
 
 ## Roadmap
 
@@ -114,6 +114,15 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.9 — 2026-11-23 — Editor-first startup with an Office-style ribbon
+
+- The app now opens **directly into the PDF editor**; the old editor landing page is gone
+- The flat toolbar is replaced by an **Office-style ribbon** with **Home / Edit / View** tabs and labelled groups: File (Open / Save / Save as), Undo, Edit area (mode picker plus highlight / underline / note tools), OCR, Tools, Pages, Zoom and Display
+- **Open** (Ctrl+O) picks a PDF from disk; without a document the window shows a centred "Open a PDF to start editing" invitation and all document actions stay disabled
+- **Toolbox** opens the former main window for conversion, compression, page organization, image export and security
+- Opening another document with unsaved changes asks to save first; encrypted files still prompt for a password
+- All editing features (forms, text rewrite, annotations, OCR, undo / redo, save and save-as) work unchanged
 
 ### v1.0.8 — 2026-11-23 — OCR for scanned documents
 
@@ -198,16 +207,16 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.8** — 扫描件 OCR：用 Windows 内置识别引擎生成可复制、可检索的文字层。
+> **最新版本：v1.0.9** — 启动即进入 PDF 编辑器，菜单改为 Office 风格功能区（开始 / 编辑 / 视图）。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
-ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
+ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
 
 ## 功能
 
 | 模块 | 能力 |
 | --- | --- |
-| **PDF 编辑** | 填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；**OCR**——用 Windows 内置引擎识别当前页或全部页面，写入不可见的可检索文字层；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
+| **PDF 编辑** | 启动即进入编辑器，顶部为 **Office 风格功能区**（**开始 / 编辑 / 视图**），提供打开、保存、另存为、撤销/重做、模式与批注工具、OCR、翻页、缩放与显示开关。可填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；**OCR**——用 Windows 内置引擎识别当前页或全部页面，写入不可见的可检索文字层；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
 | **格式转换** | PDF → Word（还原标题、段落、表格与图片）、PDF → Excel（逐页识别表格）、Word → PDF、Excel → PDF |
 | **PDF 压缩** | 按图片 PPI + JPEG 质量压缩、按目标体积压缩、极限压缩（整页转图片） |
 | **页面管理** | 缩略图管理器：旋转、删除、排序后另存；提取指定页；每 N 页拆分；多文件合并 |
@@ -235,10 +244,10 @@ python app.py
 
 ## 快速上手
 
-1. 在左侧选择工具。
-2. 选择源文件——输出路径会自动生成。
-3. 按需调整选项（或保持默认）。
-4. 点击主按钮，等待完成提示。
+1. 程序启动即为 **PDF 编辑器**——点击功能区「打开」（或窗口中央的按钮）选择 PDF。
+2. 使用 **开始 / 编辑 / 视图** 三个标签页：选择模式与批注工具、执行 OCR、翻页与缩放；**Ctrl+S** 保存。
+3. 点击「开始」中的 **工具箱** 打开其它工具：格式转换、压缩、页面管理、图片导出与加密解密。
+4. 在工具页选择源文件——输出路径会自动生成——按需调整选项后点击主按钮。
 
 ## 项目结构
 
@@ -251,13 +260,13 @@ ClaraPDFPro/
 ├── README.md
 └── clara_pdf/
     ├── __init__.py           # 应用名 / 版本号
-    ├── main_window.py        # 主窗口与导航
+    ├── main_window.py        # 工具箱窗口与导航
     ├── pages.py              # 各工具页面
     ├── page_editor.py        # 缩略图页面管理器
     ├── pdf_engine.py         # 页面操作、合并拆分、图片、加密
     ├── pdf_editor_engine.py  # 长开文档：渲染、表单字段、OCR、保存、撤销
     ├── pdf_view.py           # 页面绘制与字段内联编辑器
-    ├── editor_window.py      # 编辑器主窗口（工具栏、缩略图、状态栏）
+    ├── editor_window.py      # 编辑器主窗口（Office 风格功能区、缩略图、状态栏）
     ├── ocr.py                # Windows OCR 封装（可选 EasyOCR 后备）
     ├── converter.py          # PDF ↔ Word / Excel
     ├── compressor.py         # PDF 压缩
@@ -294,7 +303,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.7 已备份至 `ClaraPDFPro_Backups\1.0.7_新增文本编辑与批注`，准备 v1.0.9 时创建下一份备份。
+> v1.0.8 已备份至 `ClaraPDFPro_Backups\1.0.8_新增扫描件OCR`，准备 v1.1.0 时创建下一份备份。
 
 ## 后续计划
 
@@ -304,6 +313,15 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.9 — 2026-11-23 — 启动即编辑器，Office 风格功能区
+
+- 程序**启动直接进入 PDF 编辑器**，原来的编辑器入口页已移除
+- 平铺工具栏改为 **Office 风格功能区**，含 **开始 / 编辑 / 视图** 三个标签页，并按组标注：文件（打开 / 保存 / 另存为）、撤销、编辑区（模式下拉与高亮 / 下划线 / 便签工具）、OCR、工具、页面、缩放、显示区
+- **打开**（Ctrl+O）从磁盘选择 PDF；未打开文档时中央显示「打开 PDF 开始编辑」引导，文档相关按钮保持禁用
+- **工具箱** 按钮打开原主窗口，继续提供转换、压缩、页面管理、图片导出与加密解密
+- 切换文档时若有未保存更改会先询问是否保存；加密文档仍会提示输入密码
+- 表单填写、文字改写、批注、OCR、撤销/重做、保存与另存为等原有功能全部保留
 
 ### v1.0.8 — 2026-11-23 — 扫描件 OCR
 

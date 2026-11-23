@@ -252,6 +252,14 @@ STRINGS: dict[str, tuple[str, str]] = {
     ),
     "editor.open_btn": ("打开编辑器…", "Open editor…"),
     "editor.window_title": ("{name} — PDF 编辑器", "{name} — PDF Editor"),
+    "editor.window_title_empty": ("ClaraPDFPro — PDF 编辑器", "ClaraPDFPro — PDF Editor"),
+    "editor.open": ("打开", "Open"),
+    "editor.toolbox": ("工具箱", "Toolbox"),
+    "editor.empty_title": ("打开 PDF 开始编辑", "Open a PDF to start editing"),
+    "editor.empty_hint": (
+        "填写表单、原地改写文字、添加高亮 / 下划线 / 便签，还能对扫描件做 OCR。",
+        "Fill forms, rewrite text in place, add highlights / underlines / notes, and OCR scans.",
+    ),
     "editor.field_readonly": ("该字段为只读，无法编辑。", "This field is read-only."),
     "editor.save": ("保存", "Save"),
     "editor.save_as": ("另存为", "Save as"),
@@ -312,6 +320,22 @@ STRINGS: dict[str, tuple[str, str]] = {
         "No OCR engine is available. Make sure a Windows OCR language pack is installed, "
         "or run: pip install winrt-Windows.Media.Ocr winrt-Windows.Graphics.Imaging "
         "winrt-Windows.Storage.Streams winrt-Windows.Globalization"),
+
+    # ---------- 编辑器功能区 ----------
+    "ribbon.home": ("开始", "Home"),
+    "ribbon.edit": ("编辑", "Edit"),
+    "ribbon.view": ("视图", "View"),
+    "ribbon.group_file": ("文件", "File"),
+    "ribbon.group_undo": ("撤销", "Undo"),
+    "ribbon.group_edit": ("编辑区", "Edit"),
+    "ribbon.group_ocr": ("OCR", "OCR"),
+    "ribbon.group_tools": ("工具", "Tools"),
+    "ribbon.group_text": ("文字", "Text"),
+    "ribbon.group_annot": ("批注", "Annotate"),
+    "ribbon.group_form": ("表单", "Form"),
+    "ribbon.group_page": ("页面", "Pages"),
+    "ribbon.group_zoom": ("缩放", "Zoom"),
+    "ribbon.group_show": ("显示区", "Display"),
 
     # ---------- 关于 ----------
     "about.title": ("关于 ClaraPDFPro", "About ClaraPDFPro"),

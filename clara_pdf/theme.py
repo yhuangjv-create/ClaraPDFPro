@@ -152,6 +152,93 @@ def build_stylesheet(dark: bool = False) -> str:
         border-color: {c['border']};
         color: {c['text']};
     }}
+    QToolBar#RibbonToolbar {{
+        background: {c['panel']};
+        border: none;
+        border-bottom: 1px solid {c['border']};
+        padding: 0px;
+        spacing: 0px;
+    }}
+    QWidget#RibbonBar {{
+        background: {c['panel']};
+    }}
+    QTabBar#RibbonTabs {{
+        background: {c['panel']};
+    }}
+    QTabBar#RibbonTabs::tab {{
+        background: transparent;
+        color: {c['subtext']};
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 7px 20px 6px 20px;
+        font-size: 9.5pt;
+    }}
+    QTabBar#RibbonTabs::tab:hover {{
+        color: {c['text']};
+        background: {c['hover']};
+    }}
+    QTabBar#RibbonTabs::tab:selected {{
+        color: {c['accent']};
+        border-bottom: 2px solid {c['accent']};
+        font-weight: bold;
+    }}
+    QStackedWidget#RibbonPages, QWidget#RibbonPage {{
+        background: {c['panel']};
+    }}
+    QWidget#RibbonGroup {{
+        background: {c['panel']};
+        border-right: 1px solid {c['border']};
+    }}
+    QLabel#RibbonGroupTitle {{
+        color: {c['subtext']};
+        font-size: 8pt;
+        background: transparent;
+        padding-top: 2px;
+    }}
+    QToolButton#RibbonButton {{
+        background: transparent;
+        color: {c['text']};
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 5px 10px;
+        min-height: 22px;
+    }}
+    QToolButton#RibbonButton:hover {{
+        background: {c['hover']};
+        border-color: {c['border']};
+    }}
+    QToolButton#RibbonButton:pressed {{
+        background: {c['accent_light']};
+    }}
+    QToolButton#RibbonButton:checked {{
+        background: {c['accent_light']};
+        border-color: {c['accent']};
+        color: {c['accent']};
+    }}
+    QToolButton#RibbonButton:disabled {{
+        color: {c['subtext']};
+        background: transparent;
+        border-color: transparent;
+    }}
+    QToolButton#RibbonButton::menu-indicator {{
+        subcontrol-origin: padding;
+        subcontrol-position: right center;
+        right: 3px;
+    }}
+    QWidget#EditorEmpty {{
+        background: {c['win']};
+    }}
+    QLabel#EmptyTitle {{
+        font-size: 16pt;
+        font-weight: bold;
+        color: {c['text']};
+        background: transparent;
+    }}
+    QLabel#EmptyHint {{
+        font-size: 9.5pt;
+        color: {c['subtext']};
+        background: transparent;
+    }}
     QFrame#Card {{
         background: {c['card']};
         border: 1px solid {c['border']};

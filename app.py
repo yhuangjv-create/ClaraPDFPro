@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from clara_pdf import APP_NAME, ORG_NAME, __version__
 from clara_pdf.icons import make_app_icon
-from clara_pdf.theme import build_palette
+from clara_pdf.theme import build_palette, build_stylesheet
 
 
 def _hide_console() -> None:
@@ -59,11 +59,14 @@ def main() -> int:
 
     settings = Settings()
     app.setPalette(build_palette(settings.dark_mode))
+    app.setStyleSheet(build_stylesheet(settings.dark_mode))
     install_qt_translator(settings.language)
 
-    from clara_pdf.main_window import MainWindow
+    # 启动即进入 PDF 编辑器，其它工具从功能区「工具箱」打开
+    from clara_pdf.editor_window import PdfEditorWindow
+    from clara_pdf.i18n import I18n
 
-    window = MainWindow()
+    window = PdfEditorWindow(None, I18n(settings.language))
     window.show()
     return app.exec()
 
