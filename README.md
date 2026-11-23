@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.0.5-2b579a)
+![Version](https://img.shields.io/badge/version-1.0.6-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.0.5** — Every tool page now has a Clear button.
+> **Latest release: v1.0.6** — New PDF editor: fill forms, toggle fields, with undo / redo and in-place save.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -17,6 +17,7 @@ ClaraPDFPro is a local, offline PDF toolkit for Windows. It converts PDF to and 
 
 | Module | Capabilities |
 | --- | --- |
+| **Edit PDF** | Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline on the page; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form-fill modes |
 | **Convert** | PDF → Word (headings, paragraphs, tables, images rebuilt), PDF → Excel (tables detected per page), Word → PDF, Excel → PDF |
 | **Compress** | Compress by image DPI + JPEG quality, compress to a target file size, maximum compression by rasterizing pages |
 | **Organize** | Thumbnail page manager: rotate, delete, reorder and save; extract page ranges; split every *N* pages; merge multiple PDFs |
@@ -63,6 +64,9 @@ ClaraPDFPro/
     ├── pages.py              # Tool pages
     ├── page_editor.py        # Thumbnail page manager dialog
     ├── pdf_engine.py         # Page ops, merge/split, images, encryption
+    ├── pdf_editor_engine.py  # Long-lived document: render, form fields, save, undo
+    ├── pdf_view.py           # Page painter with inline field editors
+    ├── editor_window.py      # Editor main window (toolbar, thumbnails, status bar)
     ├── converter.py          # PDF ↔ Word / Excel
     ├── compressor.py         # PDF compression
     ├── tool_widgets.py       # Reusable widgets and task base
@@ -98,18 +102,25 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.4 is archived at `ClaraPDFPro_Backups\1.0.4_所有工具页新增清空按钮`. The next backup will be created when v1.0.6 is prepared.
+> v1.0.5 is archived at `ClaraPDFPro_Backups\1.0.5_所有工具页新增清空按钮`. The next backup will be created when v1.0.7 is prepared.
 
 ## Roadmap
 
-- Direct PDF text editing and annotation (highlight, note, underline)
-- Form filling
+- Direct PDF text editing and annotation (highlight, note, underline) — next
 - OCR for scanned documents
 - Batch conversion queue
 
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.0.6 — 2026-11-23 — PDF editor with form filling
+
+- New **Edit PDF** page opening a dedicated editor window with a thumbnail strip, zoom, page navigation and browse / form-fill modes
+- Fill text fields (single-line and multi-line), combo boxes and list boxes, and toggle checkboxes / radio buttons inline on the page
+- Required fields are marked with a red dot; read-only fields cannot be edited; appearance streams refresh immediately after every change
+- Undo / redo backed by full-document snapshots, with in-place incremental save and save-as
+- Encrypted documents prompt for a password; closing with unsaved changes asks for confirmation
 
 ### v1.0.5 — 2026-11-20 — Clear buttons for every tool
 
@@ -171,7 +182,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.0.5** — 所有工具页都提供“清空”按钮。
+> **最新版本：v1.0.6** — 新增 PDF 编辑器：填表、勾选字段，支持撤销/重做与原地保存。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -180,6 +191,7 @@ ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：支持 PDF �
 
 | 模块 | 能力 |
 | --- | --- |
+| **PDF 编辑** | 在页面上直接填写表单字段、勾选复选框/单选框、编辑下拉与列表框；支持撤销/重做、原地增量保存与另存为；含页面缩略图、缩放与浏览/填表模式 |
 | **格式转换** | PDF → Word（还原标题、段落、表格与图片）、PDF → Excel（逐页识别表格）、Word → PDF、Excel → PDF |
 | **PDF 压缩** | 按图片 PPI + JPEG 质量压缩、按目标体积压缩、极限压缩（整页转图片） |
 | **页面管理** | 缩略图管理器：旋转、删除、排序后另存；提取指定页；每 N 页拆分；多文件合并 |
@@ -226,6 +238,9 @@ ClaraPDFPro/
     ├── pages.py              # 各工具页面
     ├── page_editor.py        # 缩略图页面管理器
     ├── pdf_engine.py         # 页面操作、合并拆分、图片、加密
+    ├── pdf_editor_engine.py  # 长开文档：渲染、表单字段、保存、撤销
+    ├── pdf_view.py           # 页面绘制与字段内联编辑器
+    ├── editor_window.py      # 编辑器主窗口（工具栏、缩略图、状态栏）
     ├── converter.py          # PDF ↔ Word / Excel
     ├── compressor.py         # PDF 压缩
     ├── tool_widgets.py       # 复用组件与任务基类
@@ -261,18 +276,25 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.4 已备份至 `ClaraPDFPro_Backups\1.0.4_所有工具页新增清空按钮`，准备 v1.0.6 时创建下一份备份。
+> v1.0.5 已备份至 `ClaraPDFPro_Backups\1.0.5_所有工具页新增清空按钮`，准备 v1.0.7 时创建下一份备份。
 
 ## 后续计划
 
-- PDF 文本直接编辑与批注（高亮、便签、下划线）
-- 表单填写
+- PDF 文本直接编辑与批注（高亮、便签、下划线）—— 下一版本
 - 扫描件 OCR
 - 批量转换队列
 
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.0.6 — 2026-11-23 — 新增 PDF 编辑器与表单填写
+
+- 新增「PDF 编辑」页面，打开独立编辑器窗口，含缩略图条、缩放、翻页以及浏览 / 填表两种模式
+- 在页面上直接填写单行/多行文本框、下拉框与列表框，勾选复选框与单选框
+- 必填字段标记红点；只读字段禁止编辑；每次修改后外观流即时刷新
+- 基于整份文档快照的撤销 / 重做，支持原地增量保存与另存为
+- 加密文档打开时提示输入密码；关闭时若有未保存更改会二次确认
 
 ### v1.0.5 — 2026-11-20 — 所有工具页新增清空按钮
 
