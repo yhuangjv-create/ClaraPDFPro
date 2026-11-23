@@ -170,11 +170,11 @@ class _RibbonBar(QWidget):
 
 
 class _PageScrollArea(QScrollArea):
-    """单页滚动 + 触边翻页的滚轮容器。
+    """单页滚动 + 触边翻页。
 
-    页面本身由 PdfPageView 逐页渲染（保留编辑器的单页状态、批注、表单、文本编辑）；
-    滚轮在当前页内部滚动，到达顶/底后继续滚动会自动切换到上/下一页，
-    并把滚动条重置到对侧，造成"连续滚动所有页"的体验。
+    正常情况下滚轮驱动 QScrollArea 在当前页内滚动；到达顶/底后继续滚
+    动才会翻页。当页面本身比视口还短时（整页已经显示出来），滚轮每
+    次都直接翻页，避免"滚不动"的困惑。
     """
 
     page_prev = Signal()
@@ -182,7 +182,7 @@ class _PageScrollArea(QScrollArea):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._paging_lock = False  # 翻页期间防止重入
+        self._paging_lock = False
 
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
         if self._paging_lock:
@@ -194,21 +194,36 @@ class _PageScrollArea(QScrollArea):
             super().wheelEvent(event)
             return
         scrolling_down = delta > 0
-        at_bottom = sb.value() >= sb.maximum() - 1
-        at_top = sb.value() <= sb.minimum() + 1
-        if scrolling_down and at_bottom:
-            self._paging_lock = True
+        # 关键：只有 scrollBar 本身有范围（maximum > 0）时，才谈"触边"
+        has_scroll_range = sb.maximum() > sb.minimum()
+        if has_scroll_range:
+            at_bottom = sb.value() >= sb.maximum() - 1
+            at_top = sb.value() <= sb.minimum() + 1
+            if scrolling_down and at_bottom:
+                self._emit_and_lock("next", event)
+                return
+            if not scrolling_down and at_top:
+                self._emit_and_lock("prev", event)
+                return
+            # 直接驱动滚动条，绕开 QScrollArea.wheelEvent 在某些情况下不动滚动条的 bug
+            step = max(1, abs(delta))
+            sb.setValue(sb.value() + step if scrolling_down else sb.value() - step)
+            event.accept()
+            return
+        # maximum == 0：当前页已经完整显示在视口里，滚轮直接翻页
+        if scrolling_down:
+            self._emit_and_lock("next", event)
+        else:
+            self._emit_and_lock("prev", event)
+
+    def _emit_and_lock(self, which: str, event: QWheelEvent) -> None:
+        self._paging_lock = True
+        if which == "next":
             self.page_next.emit()
-            QTimer.singleShot(0, self._unlock)
-            event.accept()
-            return
-        if not scrolling_down and at_top:
-            self._paging_lock = True
+        else:
             self.page_prev.emit()
-            QTimer.singleShot(0, self._unlock)
-            event.accept()
-            return
-        super().wheelEvent(event)
+        event.accept()
+        QTimer.singleShot(0, self._unlock)
 
     def _unlock(self) -> None:
         self._paging_lock = False

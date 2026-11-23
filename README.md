@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.4-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.5-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.4** — the viewer now lets the mouse wheel scroll across every page: reach the top or bottom of the current page and keep rolling to jump to the previous or next page.
+> **Latest release: v1.1.5** — fixed the mouse wheel that was doing nothing or flipping pages the wrong way; wheel events now drive the scroll bar directly, just like a normal PDF viewer.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.5 — 2026-11-23 — Mouse wheel actually drives the view
+
+- The custom `PageScrollArea.wheelEvent` was calling `super().wheelEvent(event)` which, under Qt/PySide6 on Windows, was a no‑op: the scroll bar never moved, even though the event reached the widget
+- Rewrote the wheel handler to move `verticalScrollBar.setValue(...)` directly from `angleDelta`, so rolling the wheel now actually scrolls the page contents up and down
+- Kept the edge paging: when you reach the bottom of the current page and keep rolling down, it flips to the next page and resets the scroll bar to the top; conversely for going up
 
 ### v1.1.4 — 2026-11-23 — Mouse wheel scrolls across every page
 
@@ -242,7 +248,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.4** — 鼠标滚轮现在可以穿过所有 PDF 页面：当前页滚到底后继续向下滚，自动跳到下一页；滚到顶后继续向上滚，自动回到上一页。
+> **最新版本：v1.1.5** — 修复鼠标滚轮在页面区域无效或翻页方向错乱的问题，滚轮事件现在直接驱动滚动条，和正常 PDF 查看器一样。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -338,7 +344,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.3 已备份至 `ClaraPDFPro_Backups\1.1.2_深色模式与默认编辑文字`，准备 v1.1.5 时创建下一份备份。
+> v1.1.4 已备份至 `ClaraPDFPro_Backups\1.1.3_关闭时记忆语言`，准备 v1.1.6 时创建下一份备份。
 
 ## 后续计划
 
@@ -348,6 +354,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.5 — 2026-11-23 — 滚轮真正驱动视图了
+
+- 原来 `PageScrollArea.wheelEvent` 里调 `super().wheelEvent(event)` 在 Windows + PySide6 下是空操作：事件到了但滚动条没动
+- 改成直接从 `angleDelta` 调 `verticalScrollBar.setValue(...)`，滚轮现在真的能把页面内容上下滚动
+- 保留触边翻页：当前页到底继续向下滚 → 下一页从顶部接入；到顶继续向上滚 → 上一页从底部接入
 
 ### v1.1.4 — 2026-11-23 — 滚轮可以穿过所有页面
 
