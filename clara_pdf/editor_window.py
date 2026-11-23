@@ -183,7 +183,7 @@ class PdfEditorWindow(QMainWindow):
         self._thumb_dpi = 45.0
         self._tool_pages: dict[str, QWidget] = {}
         self._current_tool: str | None = None
-        self._tools_tab = 3
+        self._tools_tab = 2
 
         self.setWindowIcon(make_app_icon())
         self.setWindowTitle(self.i18n.t("editor.window_title_empty"))
@@ -430,7 +430,7 @@ class PdfEditorWindow(QMainWindow):
         self.page_label.setMinimumWidth(110)
         self.page_label.setAlignment(Qt.AlignCenter)
 
-        # ---- 开始 ----
+        # ---- 开始（原「开始」+「编辑」合并：去重后保留唯一项） ----
         home = self.ribbon.add_tab(self.i18n.t("ribbon.home"))
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_file"))
         group.add_button(self.act_open)
@@ -441,26 +441,13 @@ class PdfEditorWindow(QMainWindow):
         group.add_button(self.act_redo)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_edit"))
         group.add(self.mode_combo)
+        group.add_button(self.act_fields)
+        group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_annot"))
         group.add_button(self.act_tool_highlight)
         group.add_button(self.act_tool_underline)
         group.add_button(self.act_tool_note)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_ocr"))
         group.add_button(self.act_ocr, popup=True)
-
-        # ---- 编辑 ----
-        edit = self.ribbon.add_tab(self.i18n.t("ribbon.edit"))
-        group = self.ribbon.add_group(edit, self.i18n.t("ribbon.group_text"))
-        group.add_button(self.act_mode_browse)
-        group.add_button(self.act_mode_text)
-        group = self.ribbon.add_group(edit, self.i18n.t("ribbon.group_annot"))
-        group.add_button(self.act_tool_highlight)
-        group.add_button(self.act_tool_underline)
-        group.add_button(self.act_tool_note)
-        group = self.ribbon.add_group(edit, self.i18n.t("ribbon.group_form"))
-        group.add_button(self.act_fields)
-        group = self.ribbon.add_group(edit, self.i18n.t("ribbon.group_ocr"))
-        group.add_button(self.act_ocr_page)
-        group.add_button(self.act_ocr_all)
 
         # ---- 视图 ----
         view = self.ribbon.add_tab(self.i18n.t("ribbon.view"))
