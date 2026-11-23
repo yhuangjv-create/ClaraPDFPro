@@ -225,6 +225,23 @@ def build_stylesheet(dark: bool = False) -> str:
         subcontrol-position: right center;
         right: 3px;
     }}
+    QToolButton#RibbonCorner {{
+        background: transparent;
+        color: {c['subtext']};
+        border: 1px solid {c['border']};
+        border-radius: 4px;
+        padding: 4px 12px;
+        min-height: 20px;
+        font-size: 9pt;
+    }}
+    QToolButton#RibbonCorner:hover {{
+        color: {c['accent']};
+        border-color: {c['accent']};
+        background: {c['accent_light']};
+    }}
+    QToolButton#RibbonCorner:pressed {{
+        background: {c['accent_light']};
+    }}
     QWidget#EditorEmpty {{
         background: {c['win']};
     }}

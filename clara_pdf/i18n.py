@@ -257,8 +257,8 @@ STRINGS: dict[str, tuple[str, str]] = {
     "editor.toolbox": ("工具箱", "Toolbox"),
     "editor.empty_title": ("打开 PDF 开始编辑", "Open a PDF to start editing"),
     "editor.empty_hint": (
-        "填写表单、原地改写文字、添加高亮 / 下划线 / 便签，还能对扫描件做 OCR。",
-        "Fill forms, rewrite text in place, add highlights / underlines / notes, and OCR scans.",
+        "点击上方「打开」或下方按钮选择 PDF，文档将在此处显示。",
+        "Click Open above or the button below to pick a PDF — it will appear here.",
     ),
     "editor.field_readonly": ("该字段为只读，无法编辑。", "This field is read-only."),
     "editor.save": ("保存", "Save"),

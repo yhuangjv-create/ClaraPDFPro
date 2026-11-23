@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.0-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.1-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.0** — every module now lives in the Office-style ribbon: convert, compress, organize, image export/import, encrypt/decrypt and OCR.
+> **Latest release: v1.1.1** — the PDF viewer now fills the main window from the start: thumbnails on the left, page view on the right, and **Open** built into the viewer.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -17,7 +17,7 @@ ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF edit
 
 | Module | Capabilities |
 | --- | --- |
-| **Edit PDF** | The app opens directly into the editor, with an **Office-style ribbon** (**Home / Edit / View / Tools**) for open, save, save-as, undo / redo, mode and annotation tools, OCR, page navigation, zoom and display toggles. The **Tools** tab embeds every other module in the same window — convert, compress, organize, PDF-to-image, image-to-PDF, encrypt / decrypt and About — plus a card-based toolbox home. Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; **OCR** — recognize the current page or all pages with the built-in Windows engine and add an invisible, searchable text layer; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
+| **Edit PDF** | The app opens directly into the editor — thumbnail strip on the left, page view on the right — with an **Office-style ribbon** (**Home / Edit / View / Tools**) for open, save, save-as, undo / redo, mode and annotation tools, OCR, page navigation, zoom and display toggles. The **Tools** tab embeds every other module in the same window — convert, compress, organize, PDF-to-image, image-to-PDF, encrypt / decrypt and About — plus a card-based toolbox home. Fill form fields, toggle checkboxes / radio buttons, edit combo and list boxes inline; **WYSIWYG text editing** — click any text to rewrite it in place, keeping position, size and color (Chinese and Latin); **annotations** — highlight, underline and sticky notes by selecting text; **OCR** — recognize the current page or all pages with the built-in Windows engine and add an invisible, searchable text layer; undo / redo, in-place incremental save and save-as; thumbnail strip, zoom, and browse / form / text / annotate modes |
 | **Convert** | PDF → Word (headings, paragraphs, tables, images rebuilt), PDF → Excel (tables detected per page), Word → PDF, Excel → PDF |
 | **Compress** | Compress by image DPI + JPEG quality, compress to a target file size, maximum compression by rasterizing pages |
 | **Organize** | Thumbnail page manager: rotate, delete, reorder and save; extract page ranges; split every *N* pages; merge multiple PDFs |
@@ -104,7 +104,7 @@ Before every release, back up the **previous** version completely:
 4. Update the "Latest release" block at the top of this README and add a changelog entry.
 5. Run the smoke tests, then release.
 
-> v1.0.9 is archived at `ClaraPDFPro_Backups\1.0.9_编辑器Office功能区`. The next backup will be created when v1.1.1 is prepared.
+> v1.1.0 is archived at `ClaraPDFPro_Backups\1.1.0_模块融入功能区`. The next backup will be created when v1.1.2 is prepared.
 
 ## Roadmap
 
@@ -114,6 +114,14 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.1 — 2026-11-23 — The editor view is always embedded in the main window
+
+- Removed the separate start screen: the editor shell — **thumbnail strip on the left, page view on the right** — is shown as soon as the app starts
+- Added an **Open** button directly inside the empty viewer, in addition to the ribbon's **Open** (Ctrl+O); documents open in place, never in a popup window
+- While no document is open, the viewer shows a short hint and all document actions stay disabled; OCR, tools and the toolbox keep working
+- Switching to the **Tools** tab and back restores the viewer exactly where it was
+- Brought back the **language switch** and **About** entries — pinned to the top-right corner of the ribbon and always one click away
 
 ### v1.1.0 — 2026-11-23 — All modules back, inside the Office-style ribbon
 
@@ -215,7 +223,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.0** — 所有模块回归并融入 Office 风格功能区：格式转换、PDF 压缩、页面管理、PDF 转图片、图片转 PDF、加密/解密与 OCR。
+> **最新版本：v1.1.1** — PDF 视图启动即占据主窗口：左侧缩略图、右侧页面视图，视图内直接提供「打开」。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -224,7 +232,7 @@ ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 
 
 | 模块 | 能力 |
 | --- | --- |
-| **PDF 编辑** | 启动即进入编辑器，顶部为 **Office 风格功能区**（**开始 / 编辑 / 视图 / 工具**），提供打开、保存、另存为、撤销/重做、模式与批注工具、OCR、翻页、缩放与显示开关。**工具** 标签页把其余模块全部嵌入同一窗口——格式转换、PDF 压缩、页面管理、PDF 转图片、图片转 PDF、加密/解密与关于，并提供卡片式工具首页。可填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；**OCR**——用 Windows 内置引擎识别当前页或全部页面，写入不可见的可检索文字层；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
+| **PDF 编辑** | 启动即进入编辑器——左侧缩略图、右侧页面视图——顶部为 **Office 风格功能区**（**开始 / 编辑 / 视图 / 工具**），提供打开、保存、另存为、撤销/重做、模式与批注工具、OCR、翻页、缩放与显示开关。**工具** 标签页把其余模块全部嵌入同一窗口——格式转换、PDF 压缩、页面管理、PDF 转图片、图片转 PDF、加密/解密与关于，并提供卡片式工具首页。可填写表单字段、勾选复选框/单选框、编辑下拉与列表框；**所见即所得文本编辑**——单击任意文字即可原位改写，保留位置、字号与颜色（中英文均支持）；**批注**——框选文字添加高亮、下划线，或放置便签；**OCR**——用 Windows 内置引擎识别当前页或全部页面，写入不可见的可检索文字层；支持撤销/重做、原地增量保存与另存为；含缩略图、缩放与浏览/填表/编辑文字/批注四种模式 |
 | **格式转换** | PDF → Word（还原标题、段落、表格与图片）、PDF → Excel（逐页识别表格）、Word → PDF、Excel → PDF |
 | **PDF 压缩** | 按图片 PPI + JPEG 质量压缩、按目标体积压缩、极限压缩（整页转图片） |
 | **页面管理** | 缩略图管理器：旋转、删除、排序后另存；提取指定页；每 N 页拆分；多文件合并 |
@@ -311,7 +319,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.0.9 已备份至 `ClaraPDFPro_Backups\1.0.9_编辑器Office功能区`，准备 v1.1.1 时创建下一份备份。
+> v1.1.0 已备份至 `ClaraPDFPro_Backups\1.1.0_模块融入功能区`，准备 v1.1.2 时创建下一份备份。
 
 ## 后续计划
 
@@ -321,6 +329,14 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.1 — 2026-11-23 — 编辑器视图常驻主窗口
+
+- 取消独立起始页：程序启动后主窗口直接显示编辑器外壳——**左侧缩略图、右侧页面视图**
+- 在空视图内直接新增 **打开** 按钮，同时保留功能区的「打开」（Ctrl+O）；文档始终在当前窗口原位打开，不再弹出新窗口
+- 未打开文档时视图显示简短提示，文档相关按钮保持禁用；OCR、工具页与工具箱照常可用
+- 切换到 **工具** 标签页再返回时，视图恢复到原来的位置与状态
+- 恢复 **语言切换** 与 **关于** 入口，固定在功能区右上角，随时一键可达
 
 ### v1.1.0 — 2026-11-23 — 模块回归，全部融入 Office 风格功能区
 

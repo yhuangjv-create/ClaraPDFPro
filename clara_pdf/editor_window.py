@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 )
 
 from .icons import make_app_icon
+from .i18n import install_qt_translator
 from .pages import (
     AboutPage,
     CompressPage,
@@ -123,9 +124,22 @@ class _RibbonBar(QWidget):
         self.pages = QStackedWidget()
         self.pages.setObjectName("RibbonPages")
 
-        outer.addWidget(self.tabs)
+        top = QHBoxLayout()
+        top.setContentsMargins(0, 0, 10, 0)
+        top.setSpacing(6)
+        top.addWidget(self.tabs)
+        top.addStretch(1)
+        self.corner = QHBoxLayout()
+        self.corner.setSpacing(4)
+        top.addLayout(self.corner)
+
+        outer.addLayout(top)
         outer.addWidget(self.pages)
         self.tabs.currentChanged.connect(self.pages.setCurrentIndex)
+
+    def add_corner(self, widget: QWidget) -> QWidget:
+        self.corner.addWidget(widget)
+        return widget
 
     def add_tab(self, title: str) -> QHBoxLayout:
         page = QWidget()
@@ -212,19 +226,23 @@ class PdfEditorWindow(QMainWindow):
         divider.setStyleSheet("color: rgba(128,128,128,0.25);")
         outer.addWidget(divider)
 
-        # 右侧滚动视图
+        # 右侧：文档视图与空视图叠放，编辑器界面始终常驻
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(False)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.view = PdfPageView(self.engine, self.i18n, self)
         self.scroll.setWidget(self.view)
-        outer.addWidget(self.scroll, 1)
-        self.editor_page = editor
 
         self.empty_page = self._build_empty_page()
+        self.right_stack = QStackedWidget()
+        self.right_stack.setObjectName("ViewerStack")
+        self.right_stack.addWidget(self.empty_page)
+        self.right_stack.addWidget(self.scroll)
+        outer.addWidget(self.right_stack, 1)
+        self.editor_page = editor
+
         self.tools_page = self._build_tools_page()
         self.body = QStackedWidget()
-        self.body.addWidget(self.empty_page)
         self.body.addWidget(editor)
         self.body.addWidget(self.tools_page)
         self.setCentralWidget(self.body)
@@ -319,8 +337,24 @@ class PdfEditorWindow(QMainWindow):
         ribbon_bar.setMovable(False)
         ribbon_bar.setFloatable(False)
         ribbon_bar.setContentsMargins(0, 0, 0, 0)
+        self.ribbon.setContentsMargins(0, 0, 0, 0)
         ribbon_bar.addWidget(self.ribbon)
         self.addToolBar(Qt.TopToolBarArea, ribbon_bar)
+
+        # 右上角：语言切换与关于
+        self.lang_btn = QToolButton()
+        self.lang_btn.setObjectName("RibbonCorner")
+        self.lang_btn.setText(self.i18n.t("common.lang"))
+        self.lang_btn.setToolTip(self.i18n.t("common.lang"))
+        self.lang_btn.setCursor(Qt.PointingHandCursor)
+        self.lang_btn.clicked.connect(self.toggle_language)
+        self.about_btn = QToolButton()
+        self.about_btn.setObjectName("RibbonCorner")
+        self.about_btn.setText(self.i18n.t("nav.about"))
+        self.about_btn.setCursor(Qt.PointingHandCursor)
+        self.about_btn.clicked.connect(lambda: self._show_tool("about"))
+        self.ribbon.add_corner(self.lang_btn)
+        self.ribbon.add_corner(self.about_btn)
 
         # ---- 动作 ----
         self.act_open = QAction(self.i18n.t("editor.open"), self)
@@ -511,7 +545,9 @@ class PdfEditorWindow(QMainWindow):
     # ---------------- 文档状态 ----------------
     def _show_empty(self) -> None:
         self._current_tool = None
-        self.body.setCurrentWidget(self.empty_page)
+        self.right_stack.setCurrentWidget(self.empty_page)
+        self.body.setCurrentWidget(self.editor_page)
+        self.thumb_list.clear()
         self._set_actions_enabled(False)
         self._update_title()
         self.page_label.setText("")
@@ -521,15 +557,16 @@ class PdfEditorWindow(QMainWindow):
         self.zoom_combo.setEditText("")
         self.statusBar().showMessage(self.i18n.t("editor.empty_hint"))
 
-    def _attach_engine(self) -> None:
+    def _attach_engine(self, confirm_thumbs: bool = True) -> None:
         self._current_tool = None
         self.view.set_engine(self.engine)
+        self.right_stack.setCurrentWidget(self.scroll)
         self.body.setCurrentWidget(self.editor_page)
         self._set_actions_enabled(True)
         self._set_dirty(False)
         self._update_title()
         self.view.set_mode(self.mode_combo.currentData())
-        self._load_thumbs()
+        self._load_thumbs(confirm_thumbs)
         self._goto(0)
         self._update_undo_redo()
         self._update_status_fields()
@@ -562,8 +599,9 @@ class PdfEditorWindow(QMainWindow):
 
     def _show_editor_body(self) -> None:
         self._current_tool = None
+        self.body.setCurrentWidget(self.editor_page)
         if self.engine is not None:
-            self.body.setCurrentWidget(self.editor_page)
+            self.right_stack.setCurrentWidget(self.scroll)
             total = self.engine.page_count
             if total:
                 text = self.i18n.t("editor.page_n", n=self.view.page_idx + 1, total=total)
@@ -572,7 +610,7 @@ class PdfEditorWindow(QMainWindow):
             self._update_status_fields()
             self._update_zoom_label()
         else:
-            self.body.setCurrentWidget(self.empty_page)
+            self.right_stack.setCurrentWidget(self.empty_page)
             self.page_label.setText("")
             self.status_page.setText("")
             self.status_fields.setText("")
@@ -671,13 +709,76 @@ class PdfEditorWindow(QMainWindow):
     def _on_toolbox_destroyed(self, _obj=None) -> None:
         self._toolbox = None
 
+    # ---------------- 语言切换 ----------------
+    def toggle_language(self) -> None:
+        for page in self._tool_pages.values():
+            if hasattr(page, "is_busy") and page.is_busy():
+                return
+        lang = self.i18n.toggle()
+        Settings().language = lang
+        install_qt_translator(lang)
+        self._rebuild_for_language()
+
+    def _rebuild_for_language(self) -> None:
+        """原地重建界面以应用新语言，保留文档、页码、缩放与当前工具。"""
+        engine = self.engine
+        dirty = self._dirty
+        tool = self._current_tool
+        tab = self.ribbon.tabs.currentIndex()
+        mode = self.mode_combo.currentData()
+        dpi = self.view.dpi
+        page_idx = self.view.page_idx
+
+        old_central = self.takeCentralWidget()
+        for toolbar in self.findChildren(QToolBar):
+            self.removeToolBar(toolbar)
+            toolbar.deleteLater()
+        for shortcut in self.findChildren(QShortcut):
+            shortcut.setEnabled(False)
+            shortcut.deleteLater()
+        for label in (self.status_page, self.status_fields, self.status_zoom):
+            self.statusBar().removeWidget(label)
+            label.deleteLater()
+        if old_central is not None:
+            old_central.deleteLater()
+
+        self._tool_pages.clear()
+        self._current_tool = None
+        self.statusBar().clearMessage()
+
+        self._build_ui()
+        self._build_ribbon()
+        self._build_shortcuts()
+
+        if engine is None:
+            self._show_empty()
+        else:
+            self._attach_engine(confirm_thumbs=False)
+            self._set_dirty(dirty)
+            idx = self.mode_combo.findData(mode)
+            if idx >= 0:
+                self.mode_combo.setCurrentIndex(idx)
+            self.view.set_mode(mode)
+            self._goto(page_idx)
+            self._set_dpi(dpi)
+            self._update_zoom_label()
+            # _attach_engine 会排队一次自适应宽度，这里在事件循环中把缩放改回来
+            QTimer.singleShot(0, lambda: self._set_dpi(dpi))
+
+        if tool is not None:
+            self._show_tool(tool)
+        elif tab == self._tools_tab:
+            self.ribbon.tabs.setCurrentIndex(self._tools_tab)
+        elif 0 <= tab <= 2:
+            self.ribbon.tabs.setCurrentIndex(tab)
+
     # ---------------- 缩略图 ----------------
-    def _load_thumbs(self) -> None:
+    def _load_thumbs(self, confirm: bool = True) -> None:
         self.thumb_list.clear()
         if self.engine is None:
             return
         total = self.engine.page_count
-        if total > 120:
+        if total > 120 and confirm:
             box = QMessageBox(self)
             box.setIcon(QMessageBox.Question)
             box.setWindowTitle(self.i18n.t("common.info"))
