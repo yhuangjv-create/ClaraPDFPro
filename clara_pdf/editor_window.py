@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -45,6 +46,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from . import ORG_NAME
 from .icons import make_app_icon
 from .i18n import install_qt_translator
 from .pages import (
@@ -183,9 +185,10 @@ class _SmoothScrollArea(QScrollArea):
         if delta == 0:
             event.accept()
             return
-        # PySide6 on Windows 下 angleDelta.y() 符号与用户直觉相反，
-        # 需要取反才能让滚轮方向符合预期（手指向下 → sb 增大 → 看后面内容）
-        sb.setValue(sb.value() - delta)
+        # Windows + PySide6: angleDelta.y > 0 表示滚轮向下推（手指远离身体），
+        # sb.value() 增大意味着页面内容向上移动 = "看更后面"，
+        # 所以直接 + delta 就是正确方向。
+        sb.setValue(sb.value() + delta)
         event.accept()
 
 
@@ -583,7 +586,7 @@ class PdfEditorWindow(QMainWindow):
         self.zoom_combo.setEditText("")
         self.statusBar().showMessage(self.i18n.t("editor.empty_hint"))
 
-    def _attach_engine(self, confirm_thumbs: bool = True) -> None:
+    def _attach_engine(self, confirm_thumbs: bool = True, auto_fit: bool = True) -> None:
         self._current_tool = None
         self.view.set_engine(self.engine)
         self.right_stack.setCurrentWidget(self.scroll)
@@ -601,7 +604,8 @@ class PdfEditorWindow(QMainWindow):
             self.statusBar().showMessage(self.i18n.t("editor.no_form"), 8000)
         if self.ribbon.tabs.currentIndex() != 0:
             self.ribbon.tabs.setCurrentIndex(0)
-        QTimer.singleShot(0, lambda: self._fit("width"))
+        if auto_fit:
+            QTimer.singleShot(0, lambda: self._fit("width"))
 
     # ---------------- 工具页切换 ----------------
     def _on_ribbon_tab_changed(self, index: int) -> None:
@@ -1182,8 +1186,57 @@ class PdfEditorWindow(QMainWindow):
         if not self._maybe_save():
             event.ignore()
             return
-        # 显式持久化当前语言（双保险，确保下次启动与关闭时一致）
-        Settings().language = self.i18n.lang
+        s = Settings()
+        # 持久化语言（双保险）
+        s.language = self.i18n.lang
+        # 持久化会话：记住正在编辑的 PDF、页码、缩放、模式、未保存改动
+        if self.engine is not None:
+            s.last_path = self.engine.path or ""
+            s.last_page = self.view.page_idx
+            s.last_dpi = self.view.dpi
+            s.last_mode = self.view._mode
+            if self.engine.dirty:
+                # 有未保存改动 → 另存一份临时备份，下次启动先恢复这个再打开原路径
+                try:
+                    backup_dir = Path(os.environ.get("APPDATA", "")) / ORG_NAME
+                    backup_dir.mkdir(parents=True, exist_ok=True)
+                    backup_file = str(backup_dir / "last_edit_backup.pdf")
+                    self.engine.save(backup_file)
+                    s.backup_path = backup_file
+                except Exception:
+                    s.backup_path = ""
+            else:
+                # clean → 清掉上次的临时备份，不需要了
+                old_backup = s.backup_path
+                s.backup_path = ""
+                if old_backup:
+                    try:
+                        Path(old_backup).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            self.engine.close()
+        else:
+            s.clear_session()
+        event.accept()
+
+    def restore_session(self) -> bool:
+        """恢复上次关闭时编辑的 PDF 和状态。成功返回 True。"""
+        s = Settings()
+        path = s.last_path
+        if not path or not Path(path).exists():
+            return False
+        open_path = s.backup_path if (s.backup_path and Path(s.backup_path).exists()) else path
+        engine = self._open_engine(open_path)
+        if engine is None:
+            return False
         if self.engine is not None:
             self.engine.close()
-        event.accept()
+        engine.path = path
+        self.engine = engine
+        self._attach_engine(confirm_thumbs=False, auto_fit=False)
+        self.view.set_mode(s.last_mode)
+        self.view.set_dpi(s.last_dpi)
+        self._goto(s.last_page)
+        self._update_zoom_label()
+        self.setWindowTitle(f"{Path(path).stem} — ClaraPDFPro")
+        return True

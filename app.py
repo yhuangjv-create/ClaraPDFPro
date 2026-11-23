@@ -67,6 +67,8 @@ def main() -> int:
     from clara_pdf.i18n import I18n
 
     window = PdfEditorWindow(None, I18n(settings.language))
+    # 恢复上次关闭时编辑的 PDF 和状态（路径 + 页码 + 缩放 + 模式 + 未保存内容）
+    window.restore_session()
     window.show()
     return app.exec()
 

@@ -47,3 +47,59 @@ class Settings:
 
     def load_geometry(self):
         return self.value("ui/geometry")
+
+    # ---------- 会话恢复（上次编辑的 PDF + 状态）----------
+    @property
+    def last_path(self) -> str:
+        return str(self.value("session/last_path", ""))
+
+    @last_path.setter
+    def last_path(self, path: str) -> None:
+        self.set_value("session/last_path", path)
+
+    @property
+    def backup_path(self) -> str:
+        return str(self.value("session/backup_path", ""))
+
+    @backup_path.setter
+    def backup_path(self, path: str) -> None:
+        self.set_value("session/backup_path", path)
+
+    @property
+    def last_page(self) -> int:
+        try:
+            return int(self.value("session/page", 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @last_page.setter
+    def last_page(self, idx: int) -> None:
+        self.set_value("session/page", int(idx))
+
+    @property
+    def last_dpi(self) -> float:
+        try:
+            return float(self.value("session/dpi", 110.0))
+        except (TypeError, ValueError):
+            return 110.0
+
+    @last_dpi.setter
+    def last_dpi(self, dpi: float) -> None:
+        self.set_value("session/dpi", float(dpi))
+
+    @property
+    def last_mode(self) -> str:
+        return str(self.value("session/mode", "text"))
+
+    @last_mode.setter
+    def last_mode(self, mode: str) -> None:
+        self.set_value("session/mode", mode)
+
+    def clear_session(self) -> None:
+        self._s.remove("session/last_path")
+        self._s.remove("session/backup_path")
+        self._s.remove("session/page")
+        self._s.remove("session/dpi")
+        self._s.remove("session/mode")
+        self._s.sync()
+

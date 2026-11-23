@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.7-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.8-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.7** — flipped the mouse‑wheel direction so it now matches Windows default behaviour (scroll down = page down).
+> **Latest release: v1.1.8** — remembers which PDF you were editing, the page, zoom, mode, and any unsaved edits across app restarts; also reverted the mouse‑wheel direction back to the correct Windows default.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,14 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.8 — 2026-11-23 — Restore your editing session on next launch
+
+- **Session restore.** On close, the app now writes `last_path`, the current page index, dpi, and editor mode into QSettings. If the document has unsaved edits (`engine.dirty`), they are flushed into a temporary backup file in `%APPDATA%\Clara\last_edit_backup.pdf` before the engine closes
+- **Restore flow.** `app.py` now calls `PdfEditorWindow.restore_session()` right after construction. It prefers the backup when one exists (so unsaved text edits, highlights, annotations, and form values survive a restart), but always keeps `engine.path` pointing back at the original file — the user's next Save goes where they expect
+- **Auto‑fit skip.** Added an `auto_fit=False` flag to `_attach_engine`. Restore sessions pass it so the "fit to width" QTimer singleShot (used for fresh opens) does not clobber the dpi / zoom / page we just restored
+- **Wheel direction reverted.** The `SmoothScrollArea.wheelEvent` is back to `sb.value() + delta`. The previous `sb.value() - delta` from v1.1.7 caused the scroll bar to clamp at zero at the top of the document, because on Windows `angleDelta.y() > 0` already means "scroll down" and `sb.setValue(value + delta)` is the correct direction
+- **Clean‑close cleanup.** When the document is clean on close, the stale backup file is deleted so restore only uses fresh state
 
 ### v1.1.7 — 2026-11-23 — Mouse wheel direction fixed
 
@@ -260,7 +268,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.7** — 滚轮方向修好了，现在和 Windows 默认一致（向下滚 = 页面向下看）。
+> **最新版本：v1.1.8** — 关闭时记住正在编辑的 PDF、页码、缩放、模式和未保存内容；下次打开自动回到关闭前的状态；同时把滚轮方向修正为 Windows 默认。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -356,7 +364,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.6 已备份至 `ClaraPDFPro_Backups\1.1.5_滚轮直接驱动滚动条`，准备 v1.1.8 时创建下一份备份。
+> v1.1.7 已备份至 `ClaraPDFPro_Backups\1.1.6_Word式连续滚动`，准备 v1.1.9 时创建下一份备份。
 
 ## 后续计划
 
@@ -366,6 +374,14 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.8 — 2026-11-23 — 下次打开自动回到上次编辑状态
+
+- **会话恢复。** 关闭时把 `last_path`、当前页码、dpi、编辑模式写入 QSettings；如果文档有未保存改动（`engine.dirty`），先把内存状态另存到临时备份文件 `%APPDATA%\Clara\last_edit_backup.pdf` 再关闭 engine
+- **恢复流程。** `app.py` 启动时在构造 `PdfEditorWindow` 之后立刻调 `restore_session()`。优先打开临时备份（这样哪怕改了文字、高亮、批注、表单值都能跨重启保留），但 `engine.path` 始终指向原文件——下次 "保存" 还是存到用户期望的位置
+- **跳过自动适应宽度。** `_attach_engine` 加了 `auto_fit=False` 参数，恢复会话时传 False，让"新开 PDF 时自适应宽度"的 QTimer 定时器不要覆盖我们刚恢复的 dpi/页码
+- **滚轮方向回归正确。** `SmoothScrollArea.wheelEvent` 改回 `sb.value() + delta`。v1.1.7 里取反之后，从顶部开始滚 delta=+120 → value - 120 = -120 → 被 clamp 到 0 → 滚轮看起来完全不动；Windows 上 angleDelta.y > 0 本来就是向下推的语义，直接加就对了
+- **干净关闭清理备份。** 如果文档关闭时已 clean（无未保存改动），则删除上次残留的临时备份文件
 
 ### v1.1.7 — 2026-11-23 — 滚轮方向修正
 
