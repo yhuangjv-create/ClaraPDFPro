@@ -13,4 +13,4 @@ logging.getLogger("fontTools").setLevel(logging.ERROR)
 
 APP_NAME = "ClaraPDFPro"
 ORG_NAME = "Clara"
-__version__ = "1.1.3"
+__version__ = "1.1.4"

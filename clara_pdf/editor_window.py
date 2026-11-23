@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -18,6 +18,7 @@ from PySide6.QtGui import (
     QKeySequence,
     QPalette,
     QShortcut,
+    QWheelEvent,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -168,6 +169,51 @@ class _RibbonBar(QWidget):
         return group
 
 
+class _PageScrollArea(QScrollArea):
+    """单页滚动 + 触边翻页的滚轮容器。
+
+    页面本身由 PdfPageView 逐页渲染（保留编辑器的单页状态、批注、表单、文本编辑）；
+    滚轮在当前页内部滚动，到达顶/底后继续滚动会自动切换到上/下一页，
+    并把滚动条重置到对侧，造成"连续滚动所有页"的体验。
+    """
+
+    page_prev = Signal()
+    page_next = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._paging_lock = False  # 翻页期间防止重入
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        if self._paging_lock:
+            event.accept()
+            return
+        sb = self.verticalScrollBar()
+        delta = event.angleDelta().y()
+        if delta == 0:
+            super().wheelEvent(event)
+            return
+        scrolling_down = delta > 0
+        at_bottom = sb.value() >= sb.maximum() - 1
+        at_top = sb.value() <= sb.minimum() + 1
+        if scrolling_down and at_bottom:
+            self._paging_lock = True
+            self.page_next.emit()
+            QTimer.singleShot(0, self._unlock)
+            event.accept()
+            return
+        if not scrolling_down and at_top:
+            self._paging_lock = True
+            self.page_prev.emit()
+            QTimer.singleShot(0, self._unlock)
+            event.accept()
+            return
+        super().wheelEvent(event)
+
+    def _unlock(self) -> None:
+        self._paging_lock = False
+
+
 class PdfEditorWindow(QMainWindow):
     def __init__(self, engine: PdfEditorEngine | None = None, i18n=None,
                  parent: QWidget | None = None) -> None:
@@ -236,11 +282,14 @@ class PdfEditorWindow(QMainWindow):
         outer.addWidget(divider)
 
         # 右侧：文档视图与空视图叠放，编辑器界面始终常驻
-        self.scroll = QScrollArea()
+        self.scroll = _PageScrollArea()
         self.scroll.setWidgetResizable(False)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.view = PdfPageView(self.engine, self.i18n, self)
         self.scroll.setWidget(self.view)
+        # 触边翻页：滚轮到达当前页顶/底后自动切换上/下一页，并把滚动条设到对侧
+        self.scroll.page_prev.connect(self._goto_prev_from_wheel)
+        self.scroll.page_next.connect(self._goto_next_from_wheel)
 
         self.empty_page = self._build_empty_page()
         self.right_stack = QStackedWidget()
@@ -817,6 +866,21 @@ class PdfEditorWindow(QMainWindow):
         self.thumb_list.setCurrentRow(idx)
         self.thumb_list.blockSignals(False)
         self._update_status_fields()
+
+    def _goto_next_from_wheel(self) -> None:
+        """滚轮触底后的下一页：翻到下一页并让滚动条回到顶部。"""
+        if self.engine is None or self.view.page_idx >= self.engine.page_count - 1:
+            return
+        self._goto(self.view.page_idx + 1)
+        self.scroll.verticalScrollBar().setValue(0)
+
+    def _goto_prev_from_wheel(self) -> None:
+        """滚轮触顶后的上一页：翻到上一页并让滚动条停到底部。"""
+        if self.engine is None or self.view.page_idx <= 0:
+            return
+        self._goto(self.view.page_idx - 1)
+        sb = self.scroll.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
     def _on_thumb_selected(self, row: int) -> None:
         if row < 0 or row == self.view.page_idx:
