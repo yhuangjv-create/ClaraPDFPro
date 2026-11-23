@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.1.2-2b579a)
+![Version](https://img.shields.io/badge/version-1.1.3-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.1.2** — the ribbon corner now holds three buttons (language / light‑dark theme / About), Home + Edit have been merged into a single Home tab, and the app starts directly in text‑edit mode.
+> **Latest release: v1.1.3** — the app now remembers your last language choice on close and starts in that same language the next time you open it.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,11 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.1.3 — 2026-11-23 — Language preference survives a restart
+
+- The current language is now flushed to settings every time you switch it, and one more time on window close
+- The next time you launch the app it starts in that same language — no matter whether you last chose 中文 or English
 
 ### v1.1.2 — 2026-11-23 — Ribbon corner, merged tabs, text-edit default
 
@@ -230,7 +235,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.1.2** — 功能区右上角固定「语言 / 浅色深色 / 关于」三个按钮，原「开始」与「编辑」标签页合并为一个「开始」，启动即进入「编辑文字」模式。
+> **最新版本：v1.1.3** — 程序关闭时记忆当前中英文状态，下次启动自动进入相同语言。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -326,7 +331,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.1 已备份至 `ClaraPDFPro_Backups\1.1.1_右上角主题切换与合并编辑区`，准备 v1.1.3 时创建下一份备份。
+> v1.1.2 已备份至 `ClaraPDFPro_Backups\1.1.1_右上角主题切换与合并编辑区`，准备 v1.1.4 时创建下一份备份。
 
 ## 后续计划
 
@@ -336,6 +341,11 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.1.3 — 2026-11-23 — 关闭时记忆中英文状态
+
+- 每次切换语言即时写入设置，窗口关闭时再刷一次，确保无遗漏
+- 下次启动时自动进入上次关闭时的语言——无论选的是「中文」还是「English」
 
 ### v1.1.2 — 2026-11-23 — 功能区右上角、标签合并、默认编辑文字
 

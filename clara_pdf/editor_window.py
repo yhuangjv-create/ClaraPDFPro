@@ -1128,6 +1128,8 @@ class PdfEditorWindow(QMainWindow):
         if not self._maybe_save():
             event.ignore()
             return
+        # 显式持久化当前语言（双保险，确保下次启动与关闭时一致）
+        Settings().language = self.i18n.lang
         if self.engine is not None:
             self.engine.close()
         event.accept()
