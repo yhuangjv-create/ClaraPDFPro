@@ -58,56 +58,115 @@ _QT_FAMILY_ALIASES = {
     "couriernew": "Courier New",
     "calibri": "Calibri", "cambria": "Cambria", "segoeui": "Segoe UI",
     "consolas": "Consolas", "verdana": "Verdana", "georgia": "Georgia",
+    "cascadiamono": "Cascadia Mono", "cascadiacode": "Cascadia Code",
 }
+
+# 系统字体族索引（去掉非字母数字后的小写名 → 真实族名），懒加载
+_FAMILY_INDEX: dict[str, str] | None = None
+
+_STYLE_TOKENS = (
+    "bolditalic", "boldoblique", "semibold", "demibold", "extralight",
+    "extrabold", "bold", "italic", "oblique", "light", "medium", "regular",
+    "normal", "book", "roman", "black", "heavy", "demi", "mt", "psmt", "ms",
+)
+
+
+def _compact(name: str) -> str:
+    import re
+
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def _family_index() -> dict[str, str]:
+    global _FAMILY_INDEX
+    if _FAMILY_INDEX is None:
+        from PySide6.QtGui import QFontDatabase
+
+        index: dict[str, str] = {}
+        for fam in QFontDatabase.families():
+            index.setdefault(_compact(fam), fam)
+        _FAMILY_INDEX = index
+    return _FAMILY_INDEX
+
+
+def _font_name_variants(pdf_name: str) -> list[str]:
+    """把 PDF 内部字体名拆成若干可能的系统族名候选。
+
+    例：``ABCDEF+Arial-BoldMT`` → Arial；``MicrosoftYaHeiUI-0-400`` →
+    MicrosoftYaHeiUI；``CascadiaMono-SemiBold`` → CascadiaMono。
+    """
+    import re
+
+    name = pdf_name.split("+", 1)[-1].strip().split(",")[-1].strip()
+    if not name:
+        return []
+    variants = [name]
+    # 生成器/子集工具加的样式编号："MicrosoftYaHeiUI-0-400" → "MicrosoftYaHeiUI"
+    for pattern in (r"[-_]\d{1,2}[-_]\d{2,3}$", r"[-_]\d{3}$"):
+        trimmed = re.sub(pattern, "", variants[0])
+        if trimmed and trimmed != variants[0]:
+            variants.append(trimmed)
+    # 反复剥掉 -Bold / -SemiBold / -MT 之类的样式后缀
+    pending = list(variants)
+    for base in pending:
+        cur = base
+        while True:
+            low = cur.lower()
+            hit = None
+            for tok in _STYLE_TOKENS:
+                for sep in ("-", "_", " "):
+                    if low.endswith(sep + tok) and len(cur) > len(tok) + 1:
+                        hit = cur[: -len(tok) - 1]
+                        break
+                if hit:
+                    break
+            if not hit:
+                break
+            cur = hit.strip(" -_")
+            if not cur:
+                break
+            variants.append(cur)
+    # 无分隔符直接相连的样式后缀："CascadiaMonoSemiBold" → "CascadiaMono"
+    for v in list(variants):
+        low = v.lower()
+        for tok in _STYLE_TOKENS:
+            if low.endswith(tok) and len(v) > len(tok) + 2:
+                variants.append(v[: -len(tok)])
+    return [v for v in dict.fromkeys(variants) if v]
 
 
 def _qt_font_family(pdf_name: str) -> str | None:
     """把 PDF 字体名映射成系统里真实存在的 Qt 字体族；找不到返回 None。"""
-    import re
-
-    from PySide6.QtGui import QFontDatabase
-
     if not pdf_name:
         return None
-    # 去掉子集前缀与 "F1,Helv" 这类内部编号
-    name = pdf_name.split("+", 1)[-1].strip()
-    name = name.split(",")[-1].strip()
-    compact = re.sub(r"[^a-z]", "", name.lower())
-
-    keys = [compact]
-    for suffix in ("bolditalic", "boldoblique", "semibold", "bold", "italic",
-                   "oblique", "light", "medium", "regular", "book", "roman",
-                   "black", "heavy", "demi", "mt", "psmt"):
-        if compact.endswith(suffix) and len(compact) > len(suffix):
-            keys.append(compact[: -len(suffix)])
-
-    # 从显示名里反复剥掉样式后缀："Arial-BoldMT" → "Arial"
-    clean = name
-    while True:
-        stripped = re.sub(
-            r"(?i)[-_ ]?(bolditalic|boldoblique|bold|italic|oblique|light|medium|"
-            r"regular|book|roman|black|heavy|semibold|demi|mt|psmt)$", "", clean
-        ).strip(" -_")
-        if stripped == clean or not stripped:
-            break
-        clean = stripped
-
-    base = clean.replace("-", " ").split()[0] if clean else ""
-    candidates: list[str] = []
-    for key in keys:
-        alias = _QT_FAMILY_ALIASES.get(key)
-        if alias and alias not in candidates:
-            candidates.append(alias)
-    for cand in (clean, name, base):
-        if cand and cand not in candidates:
-            candidates.append(cand)
-
-    available = set(QFontDatabase().families())
-    for cand in candidates:
-        if cand in available:
-            return cand
-    # 枚举不到字体时交给 Qt 自己做替换（优先用别名）
-    return candidates[0] if candidates else None
+    index = _family_index()
+    variants = _font_name_variants(pdf_name)
+    # 1) 与系统族名做紧凑匹配（忽略大小写、空格、连字符）
+    for variant in variants:
+        hit = index.get(_compact(variant))
+        if hit:
+            return hit
+    # 2) base-14 短名别名（Helv / ti / cour …）
+    for variant in variants:
+        alias = _QT_FAMILY_ALIASES.get(_compact(variant))
+        if alias:
+            return index.get(_compact(alias), alias)
+    # 3) 等宽 / 衬线 / 无衬线兜底，避免落到 Qt 默认字体导致宽度全错
+    low = pdf_name.lower()
+    if any(k in low for k in ("mono", "cour", "consol", "code")):
+        for cand in ("Cascadia Mono", "Consolas", "Courier New"):
+            if _compact(cand) in index:
+                return index[_compact(cand)]
+    if any(k in low for k in ("times", "serif", "tiro", "georgia", "cambria")):
+        for cand in ("Times New Roman", "Georgia", "Cambria"):
+            if _compact(cand) in index:
+                return index[_compact(cand)]
+    if any(k in low for k in ("arial", "helv", "sans", "calibri")):
+        for cand in ("Arial", "Calibri", "Segoe UI"):
+            if _compact(cand) in index:
+                return index[_compact(cand)]
+    # 交给 Qt 自己替换
+    return variants[0] if variants else None
 
 
 class _LineEdit(QLineEdit):
@@ -171,6 +230,7 @@ class PdfPageView(QWidget):
     status = Signal(str)
 
     PAGE_GAP = 8  # 页之间的视觉间隙（像素）
+    EDITOR_TEXT_PAD = 2  # QLineEdit 内部固定的文字左边距（逻辑像素）
 
     def __init__(self, engine: PdfEditorEngine, i18n, parent=None) -> None:
         super().__init__(parent)
@@ -538,23 +598,56 @@ class PdfPageView(QWidget):
 
         color = self._qcolor_for_span(span)
         bg = self._page_color_at(page_idx, span)
-        editor.setText(span["text"])
+        text = span["text"]
+        editor.setText(text)
 
-        # ---------- 按基线对齐（关键：否则文字会整体下沉 / 左下偏） ----------
-        # PDF 的 origin.y 就是基线；把编辑框高度设为字体 ascent+descent，
-        # 顶边放在 基线 - ascent，QLineEdit 垂直居中后基线正好重合。
+        # ---------- 横向：按 PDF 墨迹宽度做字距校正 ----------
+        # Qt 使用的系统字体与 PDF 内嵌字体不同（步进还会被取整），长行会
+        # 累积出明显的左/右漂移。用 letter-spacing 把整段右边缘拉回 PDF
+        # 墨迹右边缘，左边缘则由下面的笔位起点保证。
         fm = QFontMetricsF(qfont)
         s = self.scale
         x0, _, x1, _ = span["bbox"]
         origin = span.get("origin") or (x0, span["bbox"][3])
-        left_px = int(round(x0 * s))
-        right_px = int(round(x1 * s))
-        baseline_px = int(round(page_top + float(origin[1]) * s))
-        ascent = int(round(fm.ascent()))
-        height = max(1, int(round(fm.ascent() + fm.descent())))
-        rect = QRect(left_px, baseline_px - ascent,
-                     max(right_px - left_px + 24, 40), height)
+        origin_x = float(origin[0])
+        # 目标宽度按“最后一个有墨迹的字符”的右边缘算，尾随空格不参与，
+        # 否则右边缘会被空格步进拉长，字距被误判为负值。
+        visible = text.rstrip()
+        target_right = None
+        boxes = span.get("char_bboxes") or []
+        if visible and len(boxes) == len(text):
+            ink_boxes = [b for c, b in zip(text, boxes)
+                         if not c.isspace() and b[2] - b[0] > 0]
+            if ink_boxes:
+                target_right = max(b[2] for b in ink_boxes)
+        if target_right is None:
+            target_right = float(x1)
+        target_w = max(1.0, (float(target_right) - origin_x) * s)
+        n_chars = max(1, len(visible))
+        spacing = (target_w - fm.boundingRect(visible).width()) / n_chars
+        em_px = max(1.0, display_pt * self._logical_dpi() / 72.0)
+        spacing = max(-em_px * 0.3, min(em_px * 0.3, spacing))
+        if abs(spacing) >= 0.02:
+            qfont.setLetterSpacing(QFont.AbsoluteSpacing, spacing)
+            fm = QFontMetricsF(qfont)
+
+        # ---------- 按基线对齐（关键：否则文字整体下沉 / 左下偏） ----------
+        # PDF 的 origin.y 就是基线；编辑框高度取字体行高，顶边放在
+        # 基线 - ascent，QLineEdit 垂直居中后基线正好重合。
+        baseline_px = page_top + float(origin[1]) * s
+        ascent = fm.ascent()
+        height = max(1, int(round(fm.height())))
+        top = int(round(baseline_px - ascent))
+
+        # QLineEdit 内部自带约 2px 左边距（光标宽度 + 内边距），这里抵消掉。
+        # 左边缘按 PDF 笔位起点（origin.x）定位：前导空格 / 缩进由 Qt 正常
+        # 排版，不依赖 glyph 左侧墨迹（部分平台 boundingRect 会返回哨兵值）。
+        pad = self.EDITOR_TEXT_PAD
+        left = int(round(origin_x * s - pad))
+        width = max(int(round(target_w)) + int(pad) + 24, 40)
+        rect = QRect(left, top, width, height)
         editor.setGeometry(rect)
+        pen_x = left + pad
 
         # 样式表显式写 font-* 与 color，压过主题里全局 QWidget 的 9pt 规则
         editor.setStyleSheet(
@@ -572,12 +665,16 @@ class PdfPageView(QWidget):
 
         editor.show()
         editor.setFocus()
+        # 样式表在 polish 时会重建字体并丢掉 letter-spacing，show 之后再设一次，
+        # 让字距校正真正落到控件字体上。
+        editor.setFont(qfont)
 
         # ---------- 光标定位到点击处，不选中任何文字 ----------
         if click is not None:
-            editor.setCursorPosition(self._caret_index(span, click.x() - rect.left()))
+            editor.setCursorPosition(
+                self._caret_index(span, int(round(click.x() - pen_x))))
         else:
-            editor.setCursorPosition(len(span["text"]))
+            editor.setCursorPosition(len(text))
         editor.deselect()
 
         self._editor = editor
@@ -604,7 +701,8 @@ class PdfPageView(QWidget):
             import bisect
 
             bounds = list(char_x) + [float(span["bbox"][2])]
-            target = float(span["bbox"][0]) + offset / max(self.scale, 1e-6)
+            origin_x = float((span.get("origin") or (span["bbox"][0], 0))[0])
+            target = origin_x + offset / max(self.scale, 1e-6)
             pos = bisect.bisect_left(bounds, target)
             if pos <= 0:
                 return 0
@@ -626,13 +724,16 @@ class PdfPageView(QWidget):
                 return i - 1 if offset - prev < half else i
         return n
 
+    def _logical_dpi(self) -> float:
+        """屏幕逻辑 DPI（Qt 用它把 pt 换算成像素）。"""
+        try:
+            return float(self.screen().logicalDotsPerInch() or 96.0)
+        except Exception:  # noqa: BLE001
+            return 96.0
+
     def _display_point_size(self, pdf_pt: float) -> float:
         """PDF 点值 → 屏幕显示点值（考虑缩放与屏幕逻辑 DPI）。"""
-        try:
-            dpi = float(self.screen().logicalDotsPerInch() or 96.0)
-        except Exception:  # noqa: BLE001
-            dpi = 96.0
-        return max(4.0, pdf_pt * self.scale * 72.0 / dpi)
+        return max(4.0, pdf_pt * self.scale * 72.0 / self._logical_dpi())
 
     def _page_color_at(self, page_idx: int, span: dict) -> QColor:
         """从渲染好的页面图上采样文字周围的底色，作为编辑框背景色。"""
@@ -664,8 +765,16 @@ class PdfPageView(QWidget):
             raw_name = raw_name.split("+", 1)[1].strip()
         name_l = raw_name.lower()
 
+        # 有的生成器把字重写进字体名："MicrosoftYaHeiUI-0-700"
+        import re
+
+        weight = 0
+        m = re.search(r"[-_](\d{3})$", raw_name)
+        if m:
+            weight = int(m.group(1))
+
         # PyMuPDF span.flags: bit1=斜体, bit4=粗体（bit2 是衬线，不能当粗体用）
-        bold = bool(flags & (1 << 4)) or any(
+        bold = bool(flags & (1 << 4)) or weight >= 600 or any(
             k in name_l for k in ("bold", "black", "heavy", "semibold", "demi"))
         italic = bool(flags & (1 << 1)) or any(k in name_l for k in ("italic", "oblique"))
 

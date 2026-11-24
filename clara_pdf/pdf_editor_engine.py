@@ -212,6 +212,7 @@ class PdfEditorEngine:
                         "color": span.get("color", 0),
                         "flags": span.get("flags", 0),
                         "char_x": [float(ch["origin"][0]) for ch in chars],
+                        "char_bboxes": [tuple(float(v) for v in ch["bbox"]) for ch in chars],
                     })
         return spans
 

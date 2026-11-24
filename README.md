@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.2-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.3-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.2** — the inline text editor now sits on the exact PDF baseline (no more downward / down‑left drift), detects bold correctly (PyMuPDF `flags` bit 4, plus font‑name hints), and resolves embedded font names such as `MicrosoftYaHeiUI‑0‑400` or `Helv` to real system families.
+> **Latest release: v1.2.3** — horizontal fidelity: the inline editor is now anchored to the PDF pen origin, cancels QLineEdit's inner left padding and applies a per-span letter-spacing correction so long lines no longer drift left/right. English/code fonts are recognised too (`CascadiaMono‑0‑400` → Cascadia Mono, `SegoeUI‑Semibold` → Segoe UI Semibold).
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,13 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.3 — 2026-11-24 — Horizontal alignment, real font matching
+
+- **No more left/right shift.** The editor is placed at the PDF pen origin (`origin.x`, so leading spaces and indents are honoured) minus QLineEdit's internal 2 px left padding, instead of at the bbox edge
+- **No more cumulative drift.** Qt rounds every glyph advance to whole pixels and substitutes fonts, so a long line ended up several pixels short/wide. Each span now gets a `letter-spacing` correction derived from its own ink width, so the right edge lines up as well as the left. Measured on `README.pdf` (32 spans): baseline deviation ≤ 0.47 px, horizontal deviation ≤ 3.5 px, most spans within 2 px
+- **English and code fonts are recognised.** `_qt_font_family()` now matches PDF names against the real `QFontDatabase` families after stripping subset prefixes and synthetic suffixes (`‑0‑400`, `‑BoldMT`), so `CascadiaMono‑0‑400` → Cascadia Mono, `SegoeUI‑Semibold` → Segoe UI Semibold; monospace/serif/sans heuristics cover fonts that are not installed
+- **Letter spacing survives the theme.** Qt's style sheet rebuilds the widget font on polish and drops the correction, so the editor font is re-applied after `show()`
 
 ### v1.2.2 — 2026-11-23 — Baseline‑exact inline editor, correct bold detection
 
@@ -295,7 +302,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.2** — 行内编辑器现在严格贴合 PDF 基线（不再下沉 / 左下偏），粗体识别修正（PyMuPDF `flags` 第 4 位 + 字体名提示），并把 `MicrosoftYaHeiUI‑0‑400`、`Helv` 这类内嵌字体名解析到系统真实字体。
+> **最新版本：v1.2.3** — 横向贴合：行内编辑器改按 PDF 笔位起点定位，抵消 QLineEdit 内置左边距，并按每段真实墨迹宽度做字距校正，长行不再左/右漂移。英文与代码字体也能正确识别（`CascadiaMono‑0‑400` → Cascadia Mono、`SegoeUI‑Semibold` → Segoe UI Semibold）。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -391,7 +398,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.1 已备份至 `ClaraPDFPro_Backups\1.2.1_光标点击与不选中`，准备 v1.2.3 时创建下一份备份。
+> v1.2.2 已备份至 `ClaraPDFPro_Backups\1.2.2_基线贴合与粗体修正`，准备 v1.2.4 时创建下一份备份。
 
 ## 后续计划
 
@@ -401,6 +408,13 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.3 — 2026-11-24 — 横向对齐、真实字体匹配
+
+- **不再左/右偏移。** 编辑框改按 PDF 笔位起点（`origin.x`）定位，前导空格与缩进自然参与排版，再抵消 QLineEdit 内置的 2 像素左边距，而不是贴着 bbox 边缘摆放
+- **不再累积漂移。** Qt 会把每个字形步进取整、且用系统字体替换 PDF 内嵌字体，长行会出现几像素的偏窄/偏宽。现在按每段自身的墨迹宽度计算 `letter-spacing` 校正，右边缘与左边缘同时对齐。实测 `README.pdf` 32 个 span：基线偏差 ≤ 0.47 像素，横向偏差 ≤ 3.5 像素，多数在 2 像素内
+- **英文与代码字体可识别。** `_qt_font_family()` 改为与真实 `QFontDatabase` 族名做紧凑匹配：剥掉子集前缀与生成器加的样式编号（`‑0‑400`、`‑BoldMT`），`CascadiaMono‑0‑400` → Cascadia Mono、`SegoeUI‑Semibold` → Segoe UI Semibold；未安装时按等宽/衬线/无衬线兜底
+- **字距校正不被主题覆盖。** Qt 样式表在 polish 时会重建控件字体并丢掉字距设置，因此 `show()` 之后再设置一次编辑器字体
 
 ### v1.2.2 — 2026-11-23 — 编辑框贴合基线、粗体识别修正
 
