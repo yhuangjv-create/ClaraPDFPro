@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.3-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.4-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.3** — horizontal fidelity: the inline editor is now anchored to the PDF pen origin, cancels QLineEdit's inner left padding and applies a per-span letter-spacing correction so long lines no longer drift left/right. English/code fonts are recognised too (`CascadiaMono‑0‑400` → Cascadia Mono, `SegoeUI‑Semibold` → Segoe UI Semibold).
+> **Latest release: v1.2.4** — rewritten text now keeps the original typography: edits are written back with the span's own font (embedded subset first, then the matching system font file with the same family, weight and slant), at the original size, color and baseline.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.4 — 2026-11-24 — Rewrites keep the original font, weight and color
+
+- **New text matches the old text.** `replace_text()` no longer writes with the generic base‑14 faces (Helvetica / Times / `china‑s`). It now redacts the span and writes the new string back with the span's own font: the embedded subset when it covers every character, otherwise the matching system font file chosen by family plus the bold / italic flags (`_FONT_FILES` covers YaHei, Arial, Times, Consolas, Cascadia, Segoe UI, Calibri, Cambria, Courier, Verdana, Georgia, SimSun, SimHei, KaiTi, FangSong), keeping the original size, color and baseline `origin`
+- **Verified by pixels on `README.pdf`.** Re‑writing a span with its own text gives a mean difference of 0.10/255 for CJK body text and 1.00/255 for the bold heading, with identical ink coverage (1.00); a missing family falls back by category instead of switching to a serif face (Cascadia Mono → Consolas)
+- **Space characters stay searchable.** Embedding a system font makes PyMuPDF emit U+00A0 for spaces; spans now normalise it back to a regular space
 
 ### v1.2.3 — 2026-11-24 — Horizontal alignment, real font matching
 
@@ -302,7 +308,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.3** — 横向贴合：行内编辑器改按 PDF 笔位起点定位，抵消 QLineEdit 内置左边距，并按每段真实墨迹宽度做字距校正，长行不再左/右漂移。英文与代码字体也能正确识别（`CascadiaMono‑0‑400` → Cascadia Mono、`SegoeUI‑Semibold` → Segoe UI Semibold）。
+> **最新版本：v1.2.4** — 改写后保持原字体：替换文字会用这段文字自己的字体写回（优先内嵌子集，其次同族同粗细同倾斜的系统字体文件），并保持原字号、颜色与基线位置，新文字与原文不再“两个样子”。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -398,7 +404,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.2 已备份至 `ClaraPDFPro_Backups\1.2.2_基线贴合与粗体修正`，准备 v1.2.4 时创建下一份备份。
+> v1.2.3 已备份至 `ClaraPDFPro_Backups\1.2.3_横向贴合与字距校正`，准备 v1.2.5 时创建下一份备份。
 
 ## 后续计划
 
@@ -408,6 +414,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.4 — 2026-11-24 — 改写后保持原字体、粗细与颜色
+
+- **新文字和原文字长得一样。** `replace_text()` 不再用通用的 base‑14 字体（Helvetica / Times / `china‑s`）写回，而是先涂黑原文字，再用这段文字自身的字体写入：内嵌子集能覆盖全部字符时直接用子集，否则按字体族 + 粗体/斜体标记挑选系统字体文件（`_FONT_FILES` 覆盖雅黑、Arial、Times、Consolas、Cascadia、Segoe UI、Calibri、Cambria、Courier、Verdana、Georgia、宋体、黑体、楷体、仿宋），保持原字号、颜色与基线 `origin`
+- **在 `README.pdf` 上做了像素级验证。** 用原字体重写同一段文字后，中文正文平均差异 0.10/255、粗体标题 1.00/255，墨迹覆盖率均为 1.00；系统里没有同族字体时按类别兜底，而不是掉到衬线字体（Cascadia Mono → Consolas）
+- **空格仍可检索。** 嵌入系统字体后 PyMuPDF 会把空格提取成 U+00A0，现在统一还原为普通空格
 
 ### v1.2.3 — 2026-11-24 — 横向对齐、真实字体匹配
 

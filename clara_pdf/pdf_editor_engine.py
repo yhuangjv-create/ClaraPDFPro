@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import io
+import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -103,6 +105,83 @@ def _resolve_fontname(span: dict, text: str) -> str:
         return fallback
 
 
+# 系统字体文件名映射（紧凑族名关键词 → 常规 / 粗体 / 斜体 / 粗斜体）
+_FONT_FILES: dict[str, tuple[str, str, str, str]] = {
+    "microsoftyaheiui": ("msyh.ttc", "msyhbd.ttc", "msyh.ttc", "msyhbd.ttc"),
+    "microsoftyahei": ("msyh.ttc", "msyhbd.ttc", "msyh.ttc", "msyhbd.ttc"),
+    "simsun": ("simsun.ttc", "simsun.ttc", "simsun.ttc", "simsun.ttc"),
+    "nsimsun": ("simsun.ttc", "simsun.ttc", "simsun.ttc", "simsun.ttc"),
+    "simhei": ("simhei.ttf", "simhei.ttf", "simhei.ttf", "simhei.ttf"),
+    "kaiti": ("simkai.ttf", "simkai.ttf", "simkai.ttf", "simkai.ttf"),
+    "fangsong": ("simfang.ttf", "simfang.ttf", "simfang.ttf", "simfang.ttf"),
+    "arial": ("arial.ttf", "arialbd.ttf", "ariali.ttf", "arialbi.ttf"),
+    "timesnewroman": ("times.ttf", "timesbd.ttf", "timesi.ttf", "timesbi.ttf"),
+    "couriernew": ("cour.ttf", "courbd.ttf", "couri.ttf", "courbi.ttf"),
+    "calibri": ("calibri.ttf", "calibrib.ttf", "calibrii.ttf", "calibriz.ttf"),
+    "cambria": ("cambria.ttc", "cambriab.ttf", "cambriai.ttf", "cambriaz.ttf"),
+    "segoeui": ("segoeui.ttf", "segoeuib.ttf", "segoeuii.ttf", "segoeuiz.ttf"),
+    "consolas": ("consola.ttf", "consolab.ttf", "consolai.ttf", "consolaz.ttf"),
+    "cascadiamono": ("CascadiaMono.ttf", "CascadiaMono-Bold.ttf",
+                     "CascadiaMono-Italic.ttf", "CascadiaMono-BoldItalic.ttf"),
+    "cascadiacode": ("CascadiaCode.ttf", "CascadiaCode-Bold.ttf",
+                     "CascadiaCode-Italic.ttf", "CascadiaCode-BoldItalic.ttf"),
+    "verdana": ("verdana.ttf", "verdanab.ttf", "verdanai.ttf", "verdanaz.ttf"),
+    "georgia": ("georgia.ttf", "georgiab.ttf", "georgiai.ttf", "georgiaz.ttf"),
+}
+
+# 已加载的系统字体对象（路径 → Font），避免每次替换都重新解析字体文件
+_FONT_CACHE: dict[str, pymupdf.Font | None] = {}
+
+
+def _family_hint(raw_name: str) -> str:
+    """从 PDF 字体名里提取紧凑的族名关键词，用于查找系统字体文件。"""
+    compact = re.sub(r"[^a-z]", "", raw_name.lower())
+    for key in _FONT_FILES:
+        if key in compact:
+            return key
+    return ""
+
+
+def _font_file_for_span(span: dict) -> str | None:
+    """按字族 + 粗斜体挑出系统字体文件路径；找不到返回 None。"""
+    raw = str(span.get("font", ""))
+    flags = int(span.get("flags", 0))
+    bold = bool(flags & SF_BOLD) or any(
+        k in raw.lower() for k in ("bold", "black", "heavy", "demi"))
+    italic = bool(flags & SF_ITALIC)
+    style_index = (2 if italic else 0) + (1 if bold else 0)
+    dirs = [
+        os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "Windows", "Fonts"),
+        os.path.join(os.environ.get("USERPROFILE", ""), "AppData", "Local",
+                     "Microsoft", "Windows", "Fonts"),
+    ]
+
+    def pick(family: str) -> str | None:
+        names = _FONT_FILES.get(family)
+        if not names:
+            return None
+        for idx in (style_index, 0):
+            for base in dirs:
+                path = os.path.join(base, names[idx])
+                if os.path.isfile(path):
+                    return path
+        return None
+
+    key = _family_hint(raw)
+    if key:
+        path = pick(key)
+        if path:
+            return path
+    # 字体文件缺失时按类别兜底：等宽 / 衬线 / 默认（中文优先 YaHei）
+    low = raw.lower()
+    if any(k in low for k in ("mono", "cour", "consol", "code")):
+        return pick("consolas") or pick("couriernew")
+    if any(k in low for k in ("times", "serif", "tiro", "georgia", "cambria")):
+        return pick("timesnewroman") or pick("georgia")
+    return pick("microsoftyahei") or pick("arial")
+
+
 @dataclass
 class FieldInfo:
     xref: int
@@ -145,6 +224,9 @@ class PdfEditorEngine:
         self._redo: list[bytes] = []
         # 缓存页面对象：Widget 的 annot 绑定依赖 Page 存活，见 _page()
         self._page_cache: dict[int, pymupdf.Page] = {}
+        # 字体保真用的缓存：basefont → xref 列表、xref → Font 对象
+        self._font_xref_cache: dict[str, list[int]] | None = None
+        self._font_obj_cache: dict[int, pymupdf.Font | None] = {}
 
     # ---------------- 生命周期 ----------------
     def close(self) -> None:
@@ -200,7 +282,9 @@ class PdfEditorEngine:
             for line in block.get("lines", []):
                 for span in line.get("spans", []):
                     chars = span.get("chars") or []
-                    text = "".join(ch.get("c", "") for ch in chars)
+                    # 系统字体（雅黑 / Consolas / Times 等）重新嵌入后，空格可能被
+                    # 提取成不换行空格 U+00A0，这里统一还原为普通空格。
+                    text = "".join(ch.get("c", "") for ch in chars).replace("\u00a0", " ")
                     if not text.strip():
                         continue
                     spans.append({
@@ -215,6 +299,70 @@ class PdfEditorEngine:
                         "char_bboxes": [tuple(float(v) for v in ch["bbox"]) for ch in chars],
                     })
         return spans
+
+    def _span_font(self, page, span: dict, text: str) -> pymupdf.Font | None:
+        """挑一段与原 span 一致的字体：优先 PDF 内嵌字体，其次系统同族字体。
+
+        这样改写 / 插入的新文字才会和原文的字体、粗细、字形保持一致。
+        """
+        chars = [ch for ch in text if not ch.isspace()]
+        if not chars:
+            return None
+        # 1) PDF 内嵌字体：子集字形齐全时与原文完全一致
+        for font in self._embedded_fonts(str(span.get("font", ""))):
+            if self._font_covers(font, chars):
+                return font
+        # 2) 系统同族字体：新输入的字不一定在子集里，用它才能继续“长得像”
+        path = _font_file_for_span(span)
+        if not path:
+            return None
+        if path not in _FONT_CACHE:
+            try:
+                _FONT_CACHE[path] = pymupdf.Font(fontfile=path)
+            except Exception:  # noqa: BLE001
+                _FONT_CACHE[path] = None
+        font = _FONT_CACHE[path]
+        if font is not None and self._font_covers(font, chars):
+            return font
+        return None
+
+    def _embedded_fonts(self, basefont: str) -> list[pymupdf.Font]:
+        """收集文档内所有同名内嵌字体（不同页可能是不同子集）。"""
+        if self._font_xref_cache is None:
+            mapping: dict[str, list[int]] = {}
+            for page in self.doc:
+                try:
+                    entries = page.get_fonts(full=True)
+                except Exception:  # noqa: BLE001
+                    continue
+                for entry in entries:
+                    xref, _ext, _type, name = entry[:4]
+                    key = name.split("+")[-1]
+                    mapping.setdefault(key, [])
+                    if xref not in mapping[key]:
+                        mapping[key].append(xref)
+            self._font_xref_cache = mapping
+        fonts: list[pymupdf.Font] = []
+        for xref in self._font_xref_cache.get(basefont.split("+")[-1], []):
+            if xref not in self._font_obj_cache:
+                try:
+                    info = self.doc.extract_font(xref)
+                    buf = info[3] if info else None
+                    self._font_obj_cache[xref] = (
+                        pymupdf.Font(fontbuffer=buf) if buf else None)
+                except Exception:  # noqa: BLE001
+                    self._font_obj_cache[xref] = None
+            font = self._font_obj_cache[xref]
+            if font is not None:
+                fonts.append(font)
+        return fonts
+
+    @staticmethod
+    def _font_covers(font: pymupdf.Font, chars: list[str]) -> bool:
+        try:
+            return all(font.has_glyph(ord(ch)) for ch in chars)
+        except Exception:  # noqa: BLE001
+            return False
 
     def replace_text(self, idx: int, span: dict, new_text: str) -> bool:
         """用涂黑 + 重写的方式替换一段文本，尽量保留位置、字号、颜色与原字体。"""
@@ -233,13 +381,22 @@ class PdfEditorEngine:
             )
             if new_text:
                 origin = span.get("origin") or (bbox.x0, bbox.y1)
-                page.insert_text(
-                    origin,
-                    new_text,
-                    fontsize=float(span.get("size", 11)),
-                    fontname=_resolve_fontname(span, new_text),
-                    color=_color_tuple(span.get("color", 0)),
-                )
+                size = float(span.get("size", 11))
+                color = _color_tuple(span.get("color", 0))
+                font = self._span_font(page, span, new_text)
+                if font is not None:
+                    # 用原字体文件写回，字形 / 粗细 / 斜体与原文一致
+                    writer = pymupdf.TextWriter(page.rect)
+                    writer.append(tuple(origin), new_text, font=font, fontsize=size)
+                    writer.write_text(page, color=color)
+                else:
+                    page.insert_text(
+                        origin,
+                        new_text,
+                        fontsize=size,
+                        fontname=_resolve_fontname(span, new_text),
+                        color=color,
+                    )
         except Exception as exc:  # noqa: BLE001
             self._undo.pop()
             raise PdfEngineError(f"无法替换文本：{exc}") from exc
