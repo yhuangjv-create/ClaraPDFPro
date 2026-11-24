@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.1-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.2-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.1** — clicking text now behaves like Word: a blinking caret lands exactly where you clicked (no pre-selected text), the inline editor is sized to match the rendered glyphs, and its background masks the original text.
+> **Latest release: v1.2.2** — the inline text editor now sits on the exact PDF baseline (no more downward / down‑left drift), detects bold correctly (PyMuPDF `flags` bit 4, plus font‑name hints), and resolves embedded font names such as `MicrosoftYaHeiUI‑0‑400` or `Helv` to real system families.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.2 — 2026-11-23 — Baseline‑exact inline editor, correct bold detection
+
+- **Text no longer drifts downward / down‑left.** The editor rectangle is now derived from the PDF baseline (`origin.y`) instead of the span bbox: height = font `ascent + descent`, top = `baseline − ascent`, with `setTextMargins(0,0,0,0)` and no extra padding. Measured deviation across 25 spans of `README.pdf`: ≤ 0.5 px
+- **Bold fixed.** `_qfont_for_span` was treating PyMuPDF `flags` bit 2 (serifed) as bold. Bold is bit 4; the code now uses `1 << 4` and additionally inspects the font name (`bold` / `black` / `heavy` / `semibold` / `demi`)
+- **Better font family resolution.** New `_qt_font_family()` strips subset prefixes (`ABCDEF+`), internal ids (`F1,Helv`), and style suffixes (`‑BoldMT`, `‑Semibold`, `‑Roman`), then maps PDF names to real system fonts (`MicrosoftYaHeiUI‑0‑400` → Microsoft YaHei UI, `Helv` → Arial, `ti` → Times New Roman, `china‑s` → SimSun, …), falling back to Qt substitution only when nothing matches
 
 ### v1.2.1 — 2026-11-23 — Word‑style caret when clicking text
 
@@ -289,7 +295,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.1** — 点击文字现在像 Word：光标落在点击处并闪烁（不再预先选中文字），编辑框字号与渲染字形一致，背景遮挡原文字避免重影。
+> **最新版本：v1.2.2** — 行内编辑器现在严格贴合 PDF 基线（不再下沉 / 左下偏），粗体识别修正（PyMuPDF `flags` 第 4 位 + 字体名提示），并把 `MicrosoftYaHeiUI‑0‑400`、`Helv` 这类内嵌字体名解析到系统真实字体。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -385,7 +391,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.0 已备份至 `ClaraPDFPro_Backups\1.2.0_所见即所得文字`，准备 v1.2.2 时创建下一份备份。
+> v1.2.1 已备份至 `ClaraPDFPro_Backups\1.2.1_光标点击与不选中`，准备 v1.2.3 时创建下一份备份。
 
 ## 后续计划
 
@@ -395,6 +401,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.2 — 2026-11-23 — 编辑框贴合基线、粗体识别修正
+
+- **文字不再下沉 / 左下偏。** 编辑框改为按 PDF 基线（`origin.y`）定位：高度取字体 `ascent + descent`，顶边为 `基线 − ascent`，并 `setTextMargins(0,0,0,0)`、不加额外内边距。实测 `README.pdf` 25 个 span 的基线偏差 ≤ 0.5 像素
+- **粗体修正。** `_qfont_for_span` 之前把 PyMuPDF `flags` 的第 2 位（衬线）当成了粗体。粗体是第 4 位，现改为 `1 << 4`，并额外检查字体名（`bold` / `black` / `heavy` / `semibold` / `demi`）
+- **字体族解析增强。** 新增 `_qt_font_family()`：去掉子集前缀（`ABCDEF+`）、内部编号（`F1,Helv`）、样式后缀（`‑BoldMT`、`‑Semibold`、`‑Roman`），再映射为系统真实字体（`MicrosoftYaHeiUI‑0‑400` → Microsoft YaHei UI、`Helv` → Arial、`ti` → Times New Roman、`china‑s` → SimSun 等），确实找不到时才交给 Qt 替换
 
 ### v1.2.1 — 2026-11-23 — 点击文字出现 Word 式光标
 

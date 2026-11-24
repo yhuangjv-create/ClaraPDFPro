@@ -8,7 +8,15 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPen, QPixmap
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontMetricsF,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -31,6 +39,75 @@ COL_READONLY = QColor("#909090")
 COL_TEXT_OVERLAY = QColor(43, 87, 154, 30)
 COL_TEXT_HOVER = QColor(43, 87, 154, 45)
 COL_SELECTION = QColor(43, 87, 154, 70)
+
+# PDF 内嵌字体名 → 系统可用字体族（键为去掉非字母后的全小写名）
+_QT_FAMILY_ALIASES = {
+    # base-14 / PDF 内部短名
+    "helv": "Arial", "helvetica": "Arial", "he": "Arial",
+    "ti": "Times New Roman", "tiro": "Times New Roman", "times": "Times New Roman",
+    "cour": "Courier New", "courier": "Courier New",
+    "chinas": "SimSun", "china": "SimSun", "cn": "Microsoft YaHei",
+    # 常见压缩名
+    "microsoftyaheiui": "Microsoft YaHei UI",
+    "microsoftyaheiuilight": "Microsoft YaHei UI Light",
+    "microsoftyahei": "Microsoft YaHei",
+    "simsun": "SimSun", "nsimsun": "NSimSun", "simhei": "SimHei",
+    "kaiti": "KaiTi", "fangsong": "FangSong",
+    "arial": "Arial", "arialmt": "Arial",
+    "timesnewroman": "Times New Roman", "timesnewromanpsmt": "Times New Roman",
+    "couriernew": "Courier New",
+    "calibri": "Calibri", "cambria": "Cambria", "segoeui": "Segoe UI",
+    "consolas": "Consolas", "verdana": "Verdana", "georgia": "Georgia",
+}
+
+
+def _qt_font_family(pdf_name: str) -> str | None:
+    """把 PDF 字体名映射成系统里真实存在的 Qt 字体族；找不到返回 None。"""
+    import re
+
+    from PySide6.QtGui import QFontDatabase
+
+    if not pdf_name:
+        return None
+    # 去掉子集前缀与 "F1,Helv" 这类内部编号
+    name = pdf_name.split("+", 1)[-1].strip()
+    name = name.split(",")[-1].strip()
+    compact = re.sub(r"[^a-z]", "", name.lower())
+
+    keys = [compact]
+    for suffix in ("bolditalic", "boldoblique", "semibold", "bold", "italic",
+                   "oblique", "light", "medium", "regular", "book", "roman",
+                   "black", "heavy", "demi", "mt", "psmt"):
+        if compact.endswith(suffix) and len(compact) > len(suffix):
+            keys.append(compact[: -len(suffix)])
+
+    # 从显示名里反复剥掉样式后缀："Arial-BoldMT" → "Arial"
+    clean = name
+    while True:
+        stripped = re.sub(
+            r"(?i)[-_ ]?(bolditalic|boldoblique|bold|italic|oblique|light|medium|"
+            r"regular|book|roman|black|heavy|semibold|demi|mt|psmt)$", "", clean
+        ).strip(" -_")
+        if stripped == clean or not stripped:
+            break
+        clean = stripped
+
+    base = clean.replace("-", " ").split()[0] if clean else ""
+    candidates: list[str] = []
+    for key in keys:
+        alias = _QT_FAMILY_ALIASES.get(key)
+        if alias and alias not in candidates:
+            candidates.append(alias)
+    for cand in (clean, name, base):
+        if cand and cand not in candidates:
+            candidates.append(cand)
+
+    available = set(QFontDatabase().families())
+    for cand in candidates:
+        if cand in available:
+            return cand
+    # 枚举不到字体时交给 Qt 自己做替换（优先用别名）
+    return candidates[0] if candidates else None
 
 
 class _LineEdit(QLineEdit):
@@ -448,9 +525,6 @@ class PdfPageView(QWidget):
         并让编辑框背景色与页面底色一致，遮住下面原文字，避免重影。
         """
         self._close_editor(commit=True)
-        rect = self._bbox_rect(span["bbox"], page_top)  # 全局坐标
-        rect.setWidth(max(rect.width() + 16, 60))
-
         editor = _LineEdit(self)
 
         # ---------- 所见即所得：字体族 / 字号 / 粗斜体 / 颜色 ----------
@@ -460,13 +534,26 @@ class PdfPageView(QWidget):
         display_pt = self._display_point_size(qfont.pointSizeF())
         qfont.setPointSizeF(display_pt)
         editor.setFont(qfont)
+        editor.setTextMargins(0, 0, 0, 0)
 
         color = self._qcolor_for_span(span)
         bg = self._page_color_at(page_idx, span)
         editor.setText(span["text"])
 
-        rect.setHeight(max(rect.height() + 4, int(display_pt * 1.9)))
-        rect.adjust(-2, -2, 6, 2)
+        # ---------- 按基线对齐（关键：否则文字会整体下沉 / 左下偏） ----------
+        # PDF 的 origin.y 就是基线；把编辑框高度设为字体 ascent+descent，
+        # 顶边放在 基线 - ascent，QLineEdit 垂直居中后基线正好重合。
+        fm = QFontMetricsF(qfont)
+        s = self.scale
+        x0, _, x1, _ = span["bbox"]
+        origin = span.get("origin") or (x0, span["bbox"][3])
+        left_px = int(round(x0 * s))
+        right_px = int(round(x1 * s))
+        baseline_px = int(round(page_top + float(origin[1]) * s))
+        ascent = int(round(fm.ascent()))
+        height = max(1, int(round(fm.ascent() + fm.descent())))
+        rect = QRect(left_px, baseline_px - ascent,
+                     max(right_px - left_px + 24, 40), height)
         editor.setGeometry(rect)
 
         # 样式表显式写 font-* 与 color，压过主题里全局 QWidget 的 9pt 规则
@@ -569,42 +656,24 @@ class PdfPageView(QWidget):
     @staticmethod
     def _qfont_for_span(span: dict) -> QFont:
         """从 pymupdf span dict 构造一个 QFont，尽量匹配原始 PDF 字体。"""
-        from PySide6.QtGui import QFontDatabase
-
         size_pt = max(4.0, float(span.get("size", 11)))
         flags = int(span.get("flags", 0))
-        bold = bool(flags & 4)       # SF_BOLD
-        italic = bool(flags & 2)     # SF_ITALIC
-        family = str(span.get("font", "")).strip()
+        raw_name = str(span.get("font", "")).strip()
+        # 去掉子集前缀，例如 "ABCDEF+Arial-BoldMT"
+        if "+" in raw_name:
+            raw_name = raw_name.split("+", 1)[1].strip()
+        name_l = raw_name.lower()
 
-        db = QFontDatabase()
-        available = set(db.families())
+        # PyMuPDF span.flags: bit1=斜体, bit4=粗体（bit2 是衬线，不能当粗体用）
+        bold = bool(flags & (1 << 4)) or any(
+            k in name_l for k in ("bold", "black", "heavy", "semibold", "demi"))
+        italic = bool(flags & (1 << 1)) or any(k in name_l for k in ("italic", "oblique"))
 
-        # pymupdf 内部名常见形如 "F1,Helv" / "Helv" / "china-s"
-        # 先把逗号前的内部 ID 去掉，拿后面的 family 名
-        if "," in family:
-            family = family.split(",")[-1].strip()
-        # 去掉 PDF base14 前缀（he / ti / co / cour / times / helv）
-        family_lower = family.lower()
-        base14_map = {
-            "helv": "Helvetica", "helvetica": "Helvetica",
-            "ti": "Times New Roman", "times": "Times New Roman",
-            "cour": "Courier New", "courier": "Courier New",
-            "he": "Helvetica", "cn": "Microsoft YaHei", "china-s": "SimSun",
-        }
-        candidate = base14_map.get(family_lower, family)
-
-        if candidate in available:
-            font = db.font(candidate, "", int(size_pt))
-        elif family in available:
-            font = db.font(family, "", int(size_pt))
-        else:
-            font = QFont()
-            font.setPointSizeF(size_pt)
-
+        family = _qt_font_family(raw_name)
+        font = QFont(family) if family else QFont()
+        font.setPointSizeF(size_pt)
         font.setBold(bold)
         font.setItalic(italic)
-        font.setPointSizeF(size_pt)
         return font
 
     @staticmethod
