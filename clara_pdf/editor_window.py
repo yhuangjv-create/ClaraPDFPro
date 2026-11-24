@@ -231,7 +231,7 @@ class PdfEditorWindow(QMainWindow):
         # 左侧缩略图
         thumb_panel = QWidget()
         thumb_panel.setObjectName("ThumbPanel")
-        thumb_panel.setFixedWidth(THUMB_GRID_W + 28)
+        thumb_panel.setFixedWidth(THUMB_GRID_W + 46)
         tlayout = QVBoxLayout(thumb_panel)
         tlayout.setContentsMargins(8, 10, 8, 10)
         tlayout.setSpacing(6)
@@ -247,6 +247,9 @@ class PdfEditorWindow(QMainWindow):
         self.thumb_list.setResizeMode(QListWidget.Adjust)
         self.thumb_list.setMovement(QListWidget.Static)
         self.thumb_list.setSpacing(4)
+        # 固定每项尺寸：图标/文字内容不同也不改变卡片宽度，避免后面页面“偏右”
+        self.thumb_list.setUniformItemSizes(True)
+        self.thumb_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.thumb_list.setSelectionMode(QListWidget.SingleSelection)
         self.thumb_list.currentRowChanged.connect(self._on_thumb_selected)
         tlayout.addWidget(self.thumb_list, 1)
@@ -805,6 +808,8 @@ class PdfEditorWindow(QMainWindow):
             for i in range(total):
                 item = QListWidgetItem(self.i18n.t("pm.page", n=i + 1))
                 item.setTextAlignment(Qt.AlignCenter)
+                # 显式指定尺寸，保证所有页卡片等宽、左边对齐
+                item.setSizeHint(QSize(THUMB_GRID_W, THUMB_GRID_H))
                 self.thumb_list.addItem(item)
             for i in range(total):
                 self._render_thumb(i)
@@ -822,6 +827,10 @@ class PdfEditorWindow(QMainWindow):
                                              annots=self.act_annots.isChecked())
         except Exception:  # noqa: BLE001
             return
+        # 统一缩放到固定画布尺寸，避免不同页因取整比例不同而左右不齐
+        if pix.width() > THUMB_W or pix.height() > THUMB_H:
+            pix = pix.scaled(THUMB_W, THUMB_H, Qt.KeepAspectRatio,
+                             Qt.SmoothTransformation)
         item = self.thumb_list.item(idx)
         if item is not None:
             item.setIcon(QIcon(pix))

@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.4-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.5-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.4** — rewritten text now keeps the original typography: edits are written back with the span's own font (embedded subset first, then the matching system font file with the same family, weight and slant), at the original size, color and baseline.
+> **Latest release: v1.2.5** — page thumbnails are now perfectly aligned: every card gets a fixed size hint, the list is uniform and non-wrapping, icons are pre-scaled to one canvas, and the stray horizontal scrollbar is gone, so page 3 and later no longer drift to the right.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.5 — 2026-11-24 — Page thumbnails left-aligned
+
+- **Pages 3+ no longer drift right.** The thumbnail list now uses `setUniformItemSizes(True)` and every item gets an explicit size hint equal to the grid cell, so a card can no longer be widened by its icon or label. Icons are also pre-scaled onto the fixed `THUMB_W × THUMB_H` canvas before being wrapped in a `QIcon`
+- **No stray horizontal scrollbar.** The icon cell was 8 px wider than the viewport, which forced a horizontal scrollbar and let content shift sideways; the panel is widened and `ScrollBarAlwaysOff` is set
+- **Verified at 100 / 125 / 150 / 200 % scaling.** Measuring the rendered card edges for the first 10 pages of `README.pdf` gives identical left/right coordinates at every scale
 
 ### v1.2.4 — 2026-11-24 — Rewrites keep the original font, weight and color
 
@@ -308,7 +314,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.4** — 改写后保持原字体：替换文字会用这段文字自己的字体写回（优先内嵌子集，其次同族同粗细同倾斜的系统字体文件），并保持原字号、颜色与基线位置，新文字与原文不再“两个样子”。
+> **最新版本：v1.2.5** — 左侧页面缩略图对齐修复：每张卡片固定尺寸、列表统一等宽且不换行、缩略图先缩放到统一画布，并去掉了多余的横向滚动条，第 3 页及以后不再偏右。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -404,7 +410,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.3 已备份至 `ClaraPDFPro_Backups\1.2.3_横向贴合与字距校正`，准备 v1.2.5 时创建下一份备份。
+> v1.2.4 已备份至 `ClaraPDFPro_Backups\1.2.4_改写保持原字体`，准备 v1.2.6 时创建下一份备份。
 
 ## 后续计划
 
@@ -414,6 +420,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.5 — 2026-11-24 — 页面缩略图左边对齐
+
+- **第 3 页起不再偏右。** 缩略图列表改用 `setUniformItemSizes(True)`，并为每一项显式设置与网格尺寸相同的 `sizeHint`，卡片宽度不会再被图标或标签撑开；缩略图在包成 `QIcon` 之前先按固定 `THUMB_W × THUMB_H` 画布缩放
+- **去掉多余的横向滚动条。** 原来图标单元格比可视区宽 8 像素，被迫出现横向滚动条、内容可左右滑动；现在加宽左侧面板并设置 `ScrollBarAlwaysOff`
+- **在 100 / 125 / 150 / 200% 缩放下验证。** 测量 `README.pdf` 前 10 页卡片的渲染边缘，左右坐标在每个缩放下完全一致
 
 ### v1.2.4 — 2026-11-24 — 改写后保持原字体、粗细与颜色
 
