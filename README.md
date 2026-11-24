@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.6-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.7-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.6** — the thumbnail strip and the page view are now joined by a draggable splitter. Drag the handle and both sides rescale together: thumbnails zoom with the strip width, and the page view re-fits to the new viewport.
+> **Latest release: v1.2.7** — recent files, ported from ClaraMarkdownEditor: a “Recent” dropdown in the ribbon lists the last PDFs with bold names, elided paths and timestamps, opens them with one click, supports right-click removal, a hidden toggle, clearing and per-app settings for count and age.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,13 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.7 — 2026-11-24 — Recent files (ported from ClaraMarkdownEditor)
+
+- **New “Recent” dropdown** next to *Open* in the Home ribbon. Each item shows the file name in bold with a grey, middle-elided full path and the last time it was opened; clicking opens the document, hovering shows the full path, and right-clicking removes just that entry
+- **Persistence and hygiene.** Files are recorded on open, save and save-as (absolute paths, de-duplicated, newest first), entries that no longer exist are filtered out, and the list is capped by a configurable count (1–50)
+- **Settings dialog** for the number of entries and an optional age filter (only files opened within N days), plus *Don’t show recent files* and *Clear all recent* in the same menu
+- **Full i18n** (English / 简体中文) and status-bar feedback for removal, clearing and saved preferences
 
 ### v1.2.6 — 2026-11-24 — Draggable splitter between the pages and the canvas
 
@@ -320,7 +327,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.6** — 页面缩略图与右侧编辑区之间新增可拖动分隔条：拖动时左侧缩略图随宽度缩放，右侧页面按当前适配模式重新排布，两侧内容同时变化。
+> **最新版本：v1.2.7** — 从 ClaraMarkdownEditor 移植「最近文件」：开始功能区新增下拉菜单，列出最近打开的 PDF（加粗文件名 + 省略路径 + 时间），单击直接打开，右键可单独移除，支持隐藏、清空，并可设置显示条数与天数范围。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -416,7 +423,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.5 已备份至 `ClaraPDFPro_Backups\1.2.5_缩略图左对齐`，准备 v1.2.7 时创建下一份备份。
+> v1.2.6 已备份至 `ClaraPDFPro_Backups\1.2.6_可拖动分隔条`，准备 v1.2.8 时创建下一份备份。
 
 ## 后续计划
 
@@ -426,6 +433,13 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.7 — 2026-11-24 — 最近文件（移植自 ClaraMarkdownEditor）
+
+- **开始功能区新增「最近文件」下拉菜单**，位于「打开」右侧。每条显示加粗文件名 + 灰色中间省略的完整路径 + 最近打开时间；单击直接打开，悬停显示完整路径，右键可只移除该条记录
+- **持久化与清理**：打开、保存、另存为时自动记录（绝对路径、去重、最新在前），已不存在的文件不再显示，条数上限可配置（1–50）
+- **设置对话框**可调整显示条数与天数范围（仅显示最近 N 天内打开的文件），同一菜单里还有「不显示最近文件」与「清空所有记录」
+- **完整中英双语**，移除、清空、保存设置均有状态栏提示
 
 ### v1.2.6 — 2026-11-24 — 页面缩略图与编辑区之间可拖动分隔
 

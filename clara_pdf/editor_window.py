@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -23,7 +24,10 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QFormLayout,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -38,6 +42,7 @@ from PySide6.QtWidgets import (
     QProgressDialog,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QSplitter,
     QStackedWidget,
     QTabBar,
@@ -45,6 +50,7 @@ from PySide6.QtWidgets import (
     QToolButton,
     QVBoxLayout,
     QWidget,
+    QWidgetAction,
 )
 
 from . import ORG_NAME
@@ -189,6 +195,33 @@ class _SmoothScrollArea(QScrollArea):
         # 用户实测 Windows 下 angleDelta.y > 0 时需用 - delta 方向才对
         sb.setValue(sb.value() - delta)
         event.accept()
+
+
+class RecentMenu(QMenu):
+    """最近文件下拉菜单：在条目上点右键可移除该记录。"""
+
+    removeRequested = Signal(str)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.remove_label = ""
+        self.setToolTipsVisible(True)
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.RightButton:
+            action = self.actionAt(event.position().toPoint())
+            if action is not None and action.data():
+                path = str(action.data())
+                submenu = QMenu(self)
+                remove = submenu.addAction(self.remove_label)
+                remove.triggered.connect(lambda _=False, p=path: self._request_remove(p))
+                submenu.exec(event.globalPosition().toPoint())
+                return
+        super().mousePressEvent(event)
+
+    def _request_remove(self, path: str) -> None:
+        self.close()
+        self.removeRequested.emit(path)
 
 
 class PdfEditorWindow(QMainWindow):
@@ -422,6 +455,12 @@ class PdfEditorWindow(QMainWindow):
         self.act_open = QAction(self.i18n.t("editor.open"), self)
         self.act_save = QAction(self.i18n.t("editor.save"), self)
         self.act_save_as = QAction(self.i18n.t("editor.save_as"), self)
+        # 最近文件：菜单内容每次展开时重建
+        self.act_recent = QAction(self.i18n.t("recent.title"), self)
+        self.recent_menu = RecentMenu(self)
+        self.recent_menu.aboutToShow.connect(self._fill_recent_menu)
+        self.recent_menu.removeRequested.connect(self._remove_recent)
+        self.act_recent.setMenu(self.recent_menu)
         self.act_undo = QAction(self.i18n.t("editor.undo"), self)
         self.act_redo = QAction(self.i18n.t("editor.redo"), self)
         self.act_prev = QAction(self.i18n.t("editor.prev_page"), self)
@@ -481,6 +520,7 @@ class PdfEditorWindow(QMainWindow):
         home = self.ribbon.add_tab(self.i18n.t("ribbon.home"))
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_file"))
         group.add_button(self.act_open)
+        group.add_button(self.act_recent, popup=True)
         group.add_button(self.act_save)
         group.add_button(self.act_save_as)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_undo"))
@@ -716,8 +756,120 @@ class PdfEditorWindow(QMainWindow):
             self.engine.close()
         self.engine = engine
         Settings().last_dir = str(Path(path).parent)
+        self._add_recent(path)
         self._attach_engine()
         return True
+
+    def _add_recent(self, path: str) -> None:
+        try:
+            Settings().add_recent_file(str(Path(path).resolve()))
+        except OSError:
+            Settings().add_recent_file(str(path))
+
+    # ---------------- 最近文件 ----------------
+    def _fill_recent_menu(self) -> None:
+        menu = self.recent_menu
+        menu.remove_label = self.i18n.t("recent.remove")
+        menu.clear()
+        settings = Settings()
+        if settings.recent_hidden:
+            empty = menu.addAction(self.i18n.t("recent.hidden"))
+            empty.setEnabled(False)
+        else:
+            files = settings.visible_recent_files()
+            if not files:
+                empty = menu.addAction(self.i18n.t("recent.empty"))
+                empty.setEnabled(False)
+            for path in files:
+                self._add_recent_entry(menu, path, settings)
+        menu.addSeparator()
+        menu.addAction(self.i18n.t("recent.settings"), self._recent_settings)
+        hide = menu.addAction(self.i18n.t("recent.hide"))
+        hide.setCheckable(True)
+        hide.setChecked(settings.recent_hidden)
+        hide.toggled.connect(self._toggle_recent_hidden)
+        if not settings.recent_hidden and settings.recent_files():
+            menu.addAction(self.i18n.t("recent.clear"), self._clear_recent)
+
+    def _add_recent_entry(self, menu: QMenu, path: str, settings: Settings) -> None:
+        """最近文件条目：加粗文件名 + 灰色完整路径与打开时间。"""
+        p = Path(path)
+        widget = QWidget(menu)
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(14, 6, 22, 6)
+        layout.setSpacing(1)
+        name = QLabel(p.name, widget)
+        font = name.font()
+        font.setBold(True)
+        name.setFont(font)
+        meta = QLabel(widget)
+        meta.setStyleSheet("color: #8a8f98; font-size: 11px;")
+        stamp = settings.recent_time(path)
+        when = datetime.fromtimestamp(stamp).strftime("%Y-%m-%d %H:%M") if stamp else ""
+        meta_text = f"{p}    {when}" if when else str(p)
+        meta.setText(meta.fontMetrics().elidedText(meta_text, Qt.ElideMiddle, 420))
+        meta.setToolTip(f"{p}\n{when}")
+        layout.addWidget(name)
+        layout.addWidget(meta)
+        # 交给 QMenu 处理点击/右键，避免自定义控件吞掉事件
+        for child in (widget, name, meta):
+            child.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        action = QWidgetAction(menu)
+        action.setData(path)
+        action.setDefaultWidget(widget)
+        action.triggered.connect(lambda _=False, s=path: self._open_recent(s))
+        menu.addAction(action)
+
+    def _open_recent(self, path: str) -> None:
+        if Path(path).exists():
+            self.open_document(path)
+            return
+        # 文件已被移动或删除：静默移除记录并提示
+        Settings().remove_recent_file(path)
+        self.statusBar().showMessage(
+            self.i18n.t("recent.removed", name=Path(path).name), 4000)
+
+    def _remove_recent(self, path: str) -> None:
+        Settings().remove_recent_file(path)
+        self.statusBar().showMessage(
+            self.i18n.t("recent.removed", name=Path(path).name), 4000)
+
+    def _clear_recent(self) -> None:
+        Settings().clear_recent_files()
+        self.statusBar().showMessage(self.i18n.t("recent.cleared"), 4000)
+
+    def _toggle_recent_hidden(self, hidden: bool) -> None:
+        Settings().recent_hidden = hidden
+
+    def _recent_settings(self) -> None:
+        settings = Settings()
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.i18n.t("recent.settings"))
+        form = QFormLayout(dialog)
+        limit = QSpinBox(dialog)
+        limit.setRange(1, 50)
+        limit.setValue(settings.recent_limit)
+        form.addRow(self.i18n.t("recent.limit_label"), limit)
+        days = QSpinBox(dialog)
+        days.setRange(0, 36500)
+        days.setSpecialValueText(self.i18n.t("recent.days_none"))
+        days.setValue(settings.recent_days)
+        form.addRow(self.i18n.t("recent.days_label"), days)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=dialog)
+        buttons.button(QDialogButtonBox.Ok).setText(self.i18n.t("common.ok"))
+        buttons.button(QDialogButtonBox.Cancel).setText(self.i18n.t("common.cancel"))
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec() != QDialog.Accepted:
+            return
+        settings.recent_limit = limit.value()
+        settings.recent_days = days.value()
+        if days.value() > 0:
+            message = self.i18n.t("recent.saved_both", n=limit.value(), d=days.value())
+        else:
+            message = self.i18n.t("recent.limit_saved", n=limit.value())
+        self.statusBar().showMessage(message, 4000)
 
     def _open_file(self) -> None:
         chosen, _ = QFileDialog.getOpenFileName(
@@ -1164,6 +1316,7 @@ class PdfEditorWindow(QMainWindow):
         self._set_dirty(False)
         self._update_title()
         Settings().last_dir = str(Path(path).parent)
+        self._add_recent(path)
         self.statusBar().showMessage(self.i18n.t("editor.saved", path=Path(path).name), 4000)
         self._load_thumbs()
         return True
@@ -1190,6 +1343,7 @@ class PdfEditorWindow(QMainWindow):
         self._set_dirty(False)
         self._update_title()
         Settings().last_dir = str(Path(path).parent)
+        self._add_recent(path)
         self.statusBar().showMessage(self.i18n.t("editor.saved", path=Path(path).name), 4000)
         self._load_thumbs()
         return True
