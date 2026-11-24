@@ -10,7 +10,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QProgressDialog,
     QPushButton,
     QScrollArea,
+    QSplitter,
     QStackedWidget,
     QTabBar,
     QToolBar,
@@ -203,6 +204,16 @@ class PdfEditorWindow(QMainWindow):
         self._dirty = False
         self._first_show = True
         self._thumb_dpi = 45.0
+        # 缩略图按面板宽度动态缩放：记录当前图标尺寸与每页原始位图
+        self._thumb_w = THUMB_W
+        self._thumb_h = THUMB_H
+        self._thumb_src: list = []
+        # 右侧缩放模式（width / page / None）；拖动分隔条时按该模式重新适配
+        self._fit_mode: str | None = None
+        self._fit_timer = QTimer(self)
+        self._fit_timer.setSingleShot(True)
+        self._fit_timer.setInterval(120)
+        self._fit_timer.timeout.connect(self._refit_after_split)
         self._tool_pages: dict[str, QWidget] = {}
         self._current_tool: str | None = None
         self._tools_tab = 2
@@ -224,14 +235,22 @@ class PdfEditorWindow(QMainWindow):
     # ---------------- 界面构建 ----------------
     def _build_ui(self) -> None:
         editor = QWidget()
-        outer = QHBoxLayout(editor)
+        outer = QVBoxLayout(editor)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
+        # 左右面板用分隔条连接：拖动时同时缩放缩略图与右侧页面
+        self.editor_split = QSplitter(Qt.Horizontal)
+        self.editor_split.setObjectName("EditorSplit")
+        self.editor_split.setChildrenCollapsible(False)
+        self.editor_split.setHandleWidth(6)
 
         # 左侧缩略图
         thumb_panel = QWidget()
         thumb_panel.setObjectName("ThumbPanel")
-        thumb_panel.setFixedWidth(THUMB_GRID_W + 46)
+        thumb_panel.setMinimumWidth(THUMB_W + 8)
+        thumb_panel.setMaximumWidth(340)
+        self.thumb_panel = thumb_panel
+        thumb_panel.installEventFilter(self)
         tlayout = QVBoxLayout(thumb_panel)
         tlayout.setContentsMargins(8, 10, 8, 10)
         tlayout.setSpacing(6)
@@ -253,12 +272,7 @@ class PdfEditorWindow(QMainWindow):
         self.thumb_list.setSelectionMode(QListWidget.SingleSelection)
         self.thumb_list.currentRowChanged.connect(self._on_thumb_selected)
         tlayout.addWidget(self.thumb_list, 1)
-        outer.addWidget(thumb_panel)
-
-        divider = QFrame()
-        divider.setFrameShape(QFrame.VLine)
-        divider.setStyleSheet("color: rgba(128,128,128,0.25);")
-        outer.addWidget(divider)
+        self.editor_split.addWidget(thumb_panel)
 
         # 右侧：文档视图与空视图叠放，编辑器界面始终常驻
         # PdfPageView 现在是多页垂直堆叠的长画布，滚轮在整个长画布上连续滚动
@@ -276,7 +290,11 @@ class PdfEditorWindow(QMainWindow):
         self.right_stack.setObjectName("ViewerStack")
         self.right_stack.addWidget(self.empty_page)
         self.right_stack.addWidget(self.scroll)
-        outer.addWidget(self.right_stack, 1)
+        self.editor_split.addWidget(self.right_stack)
+        self.editor_split.setStretchFactor(0, 0)
+        self.editor_split.setStretchFactor(1, 1)
+        self.editor_split.setSizes([THUMB_W + 60, 1000])
+        outer.addWidget(self.editor_split, 1)
         self.editor_page = editor
 
         self.tools_page = self._build_tools_page()
@@ -805,17 +823,27 @@ class PdfEditorWindow(QMainWindow):
                 return
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
+            gw, gh = self._thumb_grid()
+            self._thumb_src = [None] * total
             for i in range(total):
                 item = QListWidgetItem(self.i18n.t("pm.page", n=i + 1))
                 item.setTextAlignment(Qt.AlignCenter)
                 # 显式指定尺寸，保证所有页卡片等宽、左边对齐
-                item.setSizeHint(QSize(THUMB_GRID_W, THUMB_GRID_H))
+                item.setSizeHint(QSize(gw, gh))
                 self.thumb_list.addItem(item)
             for i in range(total):
                 self._render_thumb(i)
                 QApplication.processEvents()
         finally:
             QApplication.restoreOverrideCursor()
+
+    def _thumb_grid(self) -> tuple[int, int]:
+        """按当前图标宽度算出网格单元格尺寸。"""
+        return self._thumb_w + 6, self._thumb_h + 32
+
+    def _scaled_thumb(self, src):
+        return src.scaled(self._thumb_w, self._thumb_h, Qt.KeepAspectRatio,
+                          Qt.SmoothTransformation)
 
     def _render_thumb(self, idx: int) -> None:
         if self.engine is None:
@@ -827,16 +855,54 @@ class PdfEditorWindow(QMainWindow):
                                              annots=self.act_annots.isChecked())
         except Exception:  # noqa: BLE001
             return
-        # 统一缩放到固定画布尺寸，避免不同页因取整比例不同而左右不齐
-        if pix.width() > THUMB_W or pix.height() > THUMB_H:
-            pix = pix.scaled(THUMB_W, THUMB_H, Qt.KeepAspectRatio,
-                             Qt.SmoothTransformation)
+        # 保存原始位图，分隔条拖动时直接按需缩放，避免反复渲染
+        if idx < len(self._thumb_src):
+            self._thumb_src[idx] = pix
         item = self.thumb_list.item(idx)
         if item is not None:
-            item.setIcon(QIcon(pix))
+            item.setIcon(QIcon(self._scaled_thumb(pix)))
 
     def _refresh_current_thumb(self) -> None:
         self._render_thumb(self.view.page_idx)
+
+    def eventFilter(self, obj, event) -> bool:  # noqa: N802
+        """左侧面板宽度变化（拖动分隔条/窗口缩放）时同步缩放缩略图与右侧内容。"""
+        if obj is getattr(self, "thumb_panel", None) and event.type() == QEvent.Resize:
+            self._resize_thumb_cells()
+            if self._fit_mode:
+                self._fit_timer.start()
+        return super().eventFilter(obj, event)
+
+    def _resize_thumb_cells(self) -> None:
+        """按面板宽度缩放缩略图，始终保持等宽对齐且不出现横向滚动条。"""
+        panel_w = self.thumb_panel.width()
+        # 面板左右留白 16、列表边框 2、竖向滚动条 ~20、卡片边距/间距 ~22
+        icon_w = max(76, min(280, panel_w - 60))
+        if icon_w == self._thumb_w:
+            return
+        self._thumb_w = icon_w
+        self._thumb_h = int(round(icon_w * THUMB_H / THUMB_W))
+        gw, gh = self._thumb_grid()
+        lst = self.thumb_list
+        lst.setUpdatesEnabled(False)
+        lst.setIconSize(QSize(self._thumb_w, self._thumb_h))
+        lst.setGridSize(QSize(gw, gh))
+        for i in range(lst.count()):
+            item = lst.item(i)
+            if item is None:
+                continue
+            item.setSizeHint(QSize(gw, gh))
+            src = self._thumb_src[i] if i < len(self._thumb_src) else None
+            if src is not None:
+                item.setIcon(QIcon(self._scaled_thumb(src)))
+        lst.setUpdatesEnabled(True)
+        # 网格尺寸变化后强制立即重排，否则旧项仍按旧尺寸居中绘制
+        lst.doItemsLayout()
+        lst.viewport().update()
+
+    def _refit_after_split(self) -> None:
+        if self.engine is not None and self._fit_mode:
+            self._fit(self._fit_mode)
 
     # ---------------- 翻页 / 缩放 ----------------
     def _goto(self, idx: int) -> None:
@@ -888,11 +954,14 @@ class PdfEditorWindow(QMainWindow):
             return
         self._goto(row)
 
-    def _set_dpi(self, dpi: float) -> None:
+    def _set_dpi(self, dpi: float, from_fit: bool = False) -> None:
         if self.engine is None:
             return
         dpi = max(30.0, min(400.0, float(dpi)))
         self.view.set_dpi(dpi)
+        if not from_fit:
+            # 手动缩放后不再跟随分隔条自动适配
+            self._fit_mode = None
         self._update_zoom_label()
 
     def _update_zoom_label(self) -> None:
@@ -923,10 +992,12 @@ class PdfEditorWindow(QMainWindow):
         margin = 16.0
         dpi_w = 72.0 * max(40.0, vp.width() - margin) / r.width
         if which == "width":
-            self._set_dpi(dpi_w)
+            self._set_dpi(dpi_w, from_fit=True)
+            self._fit_mode = "width"
             return
         dpi_h = 72.0 * max(40.0, vp.height() - margin) / r.height
-        self._set_dpi(min(dpi_w, dpi_h))
+        self._set_dpi(min(dpi_w, dpi_h), from_fit=True)
+        self._fit_mode = "page"
 
     # ---------------- 模式 ----------------
     def _current_annot_tool(self) -> str:

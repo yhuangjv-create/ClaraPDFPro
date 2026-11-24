@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.5-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.6-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.5** — page thumbnails are now perfectly aligned: every card gets a fixed size hint, the list is uniform and non-wrapping, icons are pre-scaled to one canvas, and the stray horizontal scrollbar is gone, so page 3 and later no longer drift to the right.
+> **Latest release: v1.2.6** — the thumbnail strip and the page view are now joined by a draggable splitter. Drag the handle and both sides rescale together: thumbnails zoom with the strip width, and the page view re-fits to the new viewport.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.6 — 2026-11-24 — Draggable splitter between the pages and the canvas
+
+- **Split view is resizable.** The thumbnail strip and the page canvas now live in a `QSplitter` (`#EditorSplit`) with a 6 px handle, so the boundary can be dragged freely (or with the keyboard) instead of being a fixed line
+- **Both sides rescale while dragging.** The strip watches its own width: thumbnail icons are re-scaled between 76 and 280 px, item size hints and the grid follow, and `doItemsLayout()` re-runs so every card stays flush left with no horizontal scrollbar. The canvas re-applies the active fit mode (`fit width` / `fit page`) with a 120 ms debounce, so the document re-renders at the new viewport width
+- **Manual zoom is respected.** Choosing a zoom level or using `+ / -` clears the fit mode, after which dragging the splitter only changes the visible area
 
 ### v1.2.5 — 2026-11-24 — Page thumbnails left-aligned
 
@@ -314,7 +320,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.5** — 左侧页面缩略图对齐修复：每张卡片固定尺寸、列表统一等宽且不换行、缩略图先缩放到统一画布，并去掉了多余的横向滚动条，第 3 页及以后不再偏右。
+> **最新版本：v1.2.6** — 页面缩略图与右侧编辑区之间新增可拖动分隔条：拖动时左侧缩略图随宽度缩放，右侧页面按当前适配模式重新排布，两侧内容同时变化。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -410,7 +416,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.4 已备份至 `ClaraPDFPro_Backups\1.2.4_改写保持原字体`，准备 v1.2.6 时创建下一份备份。
+> v1.2.5 已备份至 `ClaraPDFPro_Backups\1.2.5_缩略图左对齐`，准备 v1.2.7 时创建下一份备份。
 
 ## 后续计划
 
@@ -420,6 +426,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.6 — 2026-11-24 — 页面缩略图与编辑区之间可拖动分隔
+
+- **中间分隔条可左右拖动。** 缩略图栏和页面画布放进 `QSplitter`（`#EditorSplit`），手柄宽 6 像素，边界不再固定不动，可以用鼠标或键盘自由调节
+- **拖动时两侧内容一起缩放。** 左侧监听自身宽度，把缩略图在 76～280 像素之间重新缩放，同时更新每项 `sizeHint` 与网格并调用 `doItemsLayout()` 强制重排，卡片始终左对齐、不出现横向滚动条；右侧按当前适配模式（适宽 / 整页）在 120 ms 防抖后重新计算缩放，文档按新视口宽度重绘
+- **尊重手动缩放。** 选择缩放比例或用 `+ / -` 后会自动退出适配模式，此时拖动分隔条只改变可见区域，不再改动缩放
 
 ### v1.2.5 — 2026-11-24 — 页面缩略图左边对齐
 

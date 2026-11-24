@@ -426,6 +426,14 @@ def build_stylesheet(dark: bool = False) -> str:
         border: 2px solid {c['accent']};
         color: {c['text']};
     }}
+    QSplitter#EditorSplit::handle {{
+        background: {c['win']};
+        border-left: 1px solid {c['border']};
+    }}
+    QSplitter#EditorSplit::handle:hover {{
+        background: {c['accent_light']};
+        border-left: 1px solid {c['accent']};
+    }}
     QScrollArea {{
         background: transparent;
         border: none;
