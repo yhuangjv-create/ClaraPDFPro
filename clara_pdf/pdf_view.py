@@ -394,19 +394,20 @@ class PdfPageView(QWidget):
         elif self._mode == "text":
             idx = self._span_at(page_idx, local_point)
             if idx is not None:
-                self._open_text_editor(self._all_spans[page_idx][idx], page_idx, page_top)
+                self._open_text_editor(
+                    self._all_spans[page_idx][idx], page_idx, page_top, pos)
                 return
         elif self._mode == "annot":
             if self._annot_tool == "note":
                 self._place_note(pos, page_idx)
                 return
-            self._close_editor()
+            self._close_editor(commit=True)
             self._sel_start = pos
             self._sel_rect = QRect(pos, pos)
             self._sel_rect_page = page_idx
             self.update()
             return
-        self._close_editor()
+        self._close_editor(commit=True)
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -439,44 +440,59 @@ class PdfPageView(QWidget):
         return None
 
     # ---------------- 文本编辑 / 批注 ----------------
-    def _open_text_editor(self, span: dict, page_idx: int, page_top: int) -> None:
-        self._close_editor()
-        rect = self._bbox_rect(span["bbox"], page_top)  # global 坐标
-        rect.setWidth(max(rect.width() + 24, 120))
-        rect.setHeight(max(rect.height() + 6, 22))
+    def _open_text_editor(self, span: dict, page_idx: int, page_top: int,
+                          click: QPoint | None = None) -> None:
+        """打开行内文本编辑器。
+
+        Word 风格：不预选任何文字，只把闪烁光标放在鼠标点击的位置，
+        并让编辑框背景色与页面底色一致，遮住下面原文字，避免重影。
+        """
+        self._close_editor(commit=True)
+        rect = self._bbox_rect(span["bbox"], page_top)  # 全局坐标
+        rect.setWidth(max(rect.width() + 16, 60))
+
         editor = _LineEdit(self)
+
+        # ---------- 所见即所得：字体族 / 字号 / 粗斜体 / 颜色 ----------
+        # _qfont_for_span 给出的是 PDF 点值；画布是 dpi 放大后的像素，
+        # 必须按 scale 与屏幕 DPI 换算成显示点值，否则字会明显偏小。
+        qfont = self._qfont_for_span(span)
+        display_pt = self._display_point_size(qfont.pointSizeF())
+        qfont.setPointSizeF(display_pt)
+        editor.setFont(qfont)
+
+        color = self._qcolor_for_span(span)
+        bg = self._page_color_at(page_idx, span)
         editor.setText(span["text"])
 
-        # ---------- 所见即所得：用 span 原始字体/字号/颜色/粗斜体 ----------
-        from PySide6.QtGui import QPalette
+        rect.setHeight(max(rect.height() + 4, int(display_pt * 1.9)))
+        rect.adjust(-2, -2, 6, 2)
+        editor.setGeometry(rect)
 
-        qfont = self._qfont_for_span(span)
-        editor.setFont(qfont)
-        color = self._qcolor_for_span(span)
-        palette = editor.palette()
-        palette.setColor(QPalette.Text, color)
-        palette.setColor(QPalette.Base, QColor(255, 255, 255, 0))  # 透明底
-        editor.setPalette(palette)
-        # 样式表必须显式写 font-family / font-size / color —— 否则主题里全局 QWidget
-        # 规则会在 show() 时覆盖掉我们 setFont() + setPalette() 的设置
-        style_sheet = (
+        # 样式表显式写 font-* 与 color，压过主题里全局 QWidget 的 9pt 规则
+        editor.setStyleSheet(
             "QLineEdit {"
-            f"  font-family: {qfont.family()};"
-            f"  font-size: {qfont.pointSizeF()}pt;"
+            f"  font-family: \"{qfont.family()}\";"
+            f"  font-size: {display_pt}pt;"
             f"  font-weight: {'bold' if qfont.bold() else 'normal'};"
             f"  font-style: {'italic' if qfont.italic() else 'normal'};"
             f"  color: {color.name()};"
-            "  background: transparent;"
+            f"  background: {bg.name()};"
             "  border: none;"
             "  padding: 0;"
             "}")
-        editor.setStyleSheet(style_sheet)
         editor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        editor.setGeometry(rect)
         editor.show()
         editor.setFocus()
-        editor.selectAll()
+
+        # ---------- 光标定位到点击处，不选中任何文字 ----------
+        if click is not None:
+            editor.setCursorPosition(self._caret_index(span, click.x() - rect.left()))
+        else:
+            editor.setCursorPosition(len(span["text"]))
+        editor.deselect()
+
         self._editor = editor
         self._editor_page = page_idx
         self._editor_span = span
@@ -485,6 +501,70 @@ class PdfPageView(QWidget):
             editor.cancel.connect(self._close_editor)
         except Exception:  # noqa: BLE001
             pass
+
+    def _caret_index(self, span: dict, offset: int) -> int:
+        """按点击的横向像素偏移算出插入位置。
+
+        优先用 PDF 每个字符的真实起点（char_x），这样和实际字形完全对齐，
+        不受 Qt 字体替换 / 字体度量差异影响；缺失时退回 Qt 字体度量估算。
+        """
+        text = span["text"]
+        n = len(text)
+        if offset <= 0:
+            return 0
+        char_x = span.get("char_x") or []
+        if len(char_x) == n and n > 0:
+            import bisect
+
+            bounds = list(char_x) + [float(span["bbox"][2])]
+            target = float(span["bbox"][0]) + offset / max(self.scale, 1e-6)
+            pos = bisect.bisect_left(bounds, target)
+            if pos <= 0:
+                return 0
+            if pos >= len(bounds):
+                return n
+            if target - bounds[pos - 1] <= bounds[pos] - target:
+                return pos - 1
+            return min(pos, n)
+
+        from PySide6.QtGui import QFontMetricsF
+
+        font = self._qfont_for_span(span)
+        font.setPointSizeF(self._display_point_size(font.pointSizeF()))
+        fm = QFontMetricsF(font)
+        for i in range(1, n + 1):
+            if fm.horizontalAdvance(text[:i]) > offset:
+                prev = fm.horizontalAdvance(text[:i - 1])
+                half = (fm.horizontalAdvance(text[:i]) - prev) / 2
+                return i - 1 if offset - prev < half else i
+        return n
+
+    def _display_point_size(self, pdf_pt: float) -> float:
+        """PDF 点值 → 屏幕显示点值（考虑缩放与屏幕逻辑 DPI）。"""
+        try:
+            dpi = float(self.screen().logicalDotsPerInch() or 96.0)
+        except Exception:  # noqa: BLE001
+            dpi = 96.0
+        return max(4.0, pdf_pt * self.scale * 72.0 / dpi)
+
+    def _page_color_at(self, page_idx: int, span: dict) -> QColor:
+        """从渲染好的页面图上采样文字周围的底色，作为编辑框背景色。"""
+        if not (0 <= page_idx < len(self._pixmaps)):
+            return QColor("white")
+        img = self._pixmaps[page_idx].toImage()
+        s = self.scale
+        x0, y0, x1, y1 = span["bbox"]
+        y = int((y0 + y1) / 2 * s)
+        candidates = [int(x0 * s) - 3, int(x0 * s) - 8, int(x1 * s) + 3]
+        best = None
+        for x in candidates:
+            if 0 <= x < img.width() and 0 <= y < img.height():
+                c = img.pixelColor(x, y)
+                if best is None or c.lightness() > best.lightness():
+                    best = c
+        if best is None or best.lightness() < 60:
+            return QColor("white")
+        return best
 
     @staticmethod
     def _qfont_for_span(span: dict) -> QFont:
@@ -588,20 +668,32 @@ class PdfPageView(QWidget):
             self.status.emit(str(exc))
 
     # ---------------- 内联编辑器 ----------------
-    def _close_editor(self) -> None:
-        if self._editor is not None:
-            self._editor.close()
-            self._editor.deleteLater()
-            self._editor = None
+    def _close_editor(self, commit: bool = False) -> None:
+        """关闭行内编辑器。commit=True 时先提交当前文字（类似 Word 点击别处）。"""
+        if commit and self._editor is not None:
+            if self._editor_span is not None:
+                self._commit_text_editor()
+                return
+            if self._editor_xref is not None:
+                self._commit_editor()
+                return
+        editor = self._editor
+        self._editor = None
         self._editor_page = None
         self._editor_xref = None
         self._editor_span = None
+        if editor is not None:
+            try:
+                editor.blockSignals(True)  # 避免 close() 触发 focusOut 再进 commit
+                editor.close()
+            finally:
+                editor.deleteLater()
 
     def _open_editor(self, f: FieldInfo, page_idx: int, page_top: int) -> None:
         if f.readonly:
             self.status.emit(self.i18n.t("editor.field_readonly"))
             return
-        self._close_editor()
+        self._close_editor(commit=True)
         if f.ftype == "CheckBox":
             self.engine.set_field_value(page_idx, f.xref, not self._bool_value(f.value))
             self.field_changed.emit()

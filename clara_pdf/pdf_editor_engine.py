@@ -84,6 +84,25 @@ def _color_tuple(color: int | None) -> tuple[float, float, float]:
     return (((c >> 16) & 255) / 255.0, ((c >> 8) & 255) / 255.0, (c & 255) / 255.0)
 
 
+def _resolve_fontname(span: dict, text: str) -> str:
+    """优先用原字体名写入；若该字体不可用（子集字体没有字体文件），退回 base-14。"""
+    flags = int(span.get("flags", 0))
+    fallback = _font_for_text(text, flags)
+    orig = str(span.get("font", "")).strip()
+    if not orig:
+        return fallback
+    # 去掉子集前缀，例如 "ABCDEF+Calibri"
+    if "+" in orig:
+        orig = orig.split("+", 1)[1].strip()
+    if not orig:
+        return fallback
+    try:
+        pymupdf.Font(fontname=orig)
+        return orig
+    except Exception:  # noqa: BLE001
+        return fallback
+
+
 @dataclass
 class FieldInfo:
     xref: int
@@ -172,23 +191,27 @@ class PdfEditorEngine:
 
     # ---------------- 文本 ----------------
     def text_spans(self, idx: int) -> list[dict]:
+        """返回可编辑文字 span；附带每个字符的起点 x（PDF 坐标），用于光标定位。"""
         spans: list[dict] = []
         page = self._page(idx)
-        for block in page.get_text("dict")["blocks"]:
+        for block in page.get_text("rawdict")["blocks"]:
             if block.get("type") != 0:
                 continue
             for line in block.get("lines", []):
                 for span in line.get("spans", []):
-                    if not span.get("text", "").strip():
+                    chars = span.get("chars") or []
+                    text = "".join(ch.get("c", "") for ch in chars)
+                    if not text.strip():
                         continue
                     spans.append({
                         "bbox": tuple(float(v) for v in span["bbox"]),
                         "origin": tuple(float(v) for v in span.get("origin", (0.0, 0.0))),
-                        "text": span.get("text", ""),
+                        "text": text,
                         "font": span.get("font", ""),
                         "size": float(span.get("size", 11)),
                         "color": span.get("color", 0),
                         "flags": span.get("flags", 0),
+                        "char_x": [float(ch["origin"][0]) for ch in chars],
                     })
         return spans
 
@@ -208,15 +231,12 @@ class PdfEditorEngine:
                 text=pymupdf.PDF_REDACT_TEXT_REMOVE,
             )
             if new_text:
-                # 优先用原 span.font；找不到再 fallback 到 _font_for_text
-                orig_font = str(span.get("font", "")).strip()
-                fontname = orig_font if orig_font else _font_for_text(new_text, int(span.get("flags", 0)))
                 origin = span.get("origin") or (bbox.x0, bbox.y1)
                 page.insert_text(
                     origin,
                     new_text,
                     fontsize=float(span.get("size", 11)),
-                    fontname=fontname,
+                    fontname=_resolve_fontname(span, new_text),
                     color=_color_tuple(span.get("color", 0)),
                 )
         except Exception as exc:  # noqa: BLE001

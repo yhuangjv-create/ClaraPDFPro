@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.0-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.1-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.0** — text edits are now WYSIWYG: the inline editor font family, size, bold/italic, and color all match the surrounding PDF text; `replace_text` also keeps the original font name when writing back.
+> **Latest release: v1.2.1** — clicking text now behaves like Word: a blinking caret lands exactly where you clicked (no pre-selected text), the inline editor is sized to match the rendered glyphs, and its background masks the original text.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,15 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.1 — 2026-11-23 — Word‑style caret when clicking text
+
+- **No more auto‑selection.** The inline editor used to `selectAll()` on open, so a click looked like it grabbed the whole left segment. It now places a caret only and calls `deselect()`
+- **Caret lands where you clicked.** `PdfEditorEngine.text_spans` now reads `rawdict` and stores each glyph's origin x (`char_x`); `_caret_index` maps the click offset (converted to PDF units via `scale`) onto those real glyph positions, so the caret does not depend on Qt font substitution
+- **Font size no longer too small.** The editor point size is converted from PDF points to display points (`size × scale × 72 / logicalDpi`), matching the rendered glyph height instead of using the raw PDF point value
+- **Page‑coloured mask.** The editor background is sampled from the rendered page image next to the span, so the editable text hides the original glyphs underneath instead of double‑drawing
+- **Commit on click elsewhere.** `_close_editor(commit=True)` applies the pending edit when the user clicks another span / blank area or switches modes, like Word; `Esc` still cancels
+- **Safe font fallback.** `_resolve_fontname` strips subset prefixes (`ABCDEF+…`) and verifies the font with `pymupdf.Font`, falling back to base‑14 when the original font file is unavailable (fixes a `need font file or buffer` error on some PDFs)
 
 ### v1.2.0 — 2026-11-23 — WYSIWYG text editing
 
@@ -280,7 +289,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.0** — 文字编辑所见即所得：内联编辑器的字体、字号、粗斜体、颜色完全匹配周围 PDF 文字；保存时也保留原字体名。
+> **最新版本：v1.2.1** — 点击文字现在像 Word：光标落在点击处并闪烁（不再预先选中文字），编辑框字号与渲染字形一致，背景遮挡原文字避免重影。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -376,7 +385,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.1.9 已备份至 `ClaraPDFPro_Backups\1.1.8_会话恢复功能`，准备 v1.2.1 时创建下一份备份。
+> v1.2.0 已备份至 `ClaraPDFPro_Backups\1.2.0_所见即所得文字`，准备 v1.2.2 时创建下一份备份。
 
 ## 后续计划
 
@@ -386,6 +395,15 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.1 — 2026-11-23 — 点击文字出现 Word 式光标
+
+- **不再自动全选。** 以前打开内联编辑器时 `selectAll()`，点一下就像把左边整段文字都选中了。现在只定位光标并 `deselect()`
+- **光标落在点击处。** `PdfEditorEngine.text_spans` 改用 `rawdict`，为每个字形记录起点 x（`char_x`）；`_caret_index` 把点击偏移按 `scale` 换算成 PDF 坐标后与真实字形位置比较，因此光标不依赖 Qt 的字体替换结果
+- **字号不再偏小。** 编辑器点值由 PDF 点值换算为显示点值（`size × scale × 72 / 逻辑 DPI`），与渲染出的字形高度一致
+- **页面底色遮罩。** 编辑器背景色从渲染页面图像中 span 旁边采样，覆盖住下方原文字，不再出现重影
+- **点击别处即提交。** `_close_editor(commit=True)` 在点击其它 span / 空白处或切换模式时先提交当前修改（与 Word 一致）；`Esc` 仍然取消
+- **字体安全回退。** `_resolve_fontname` 去掉子集前缀（`ABCDEF+…`）并用 `pymupdf.Font` 校验，原字体文件缺失时回退到 base-14（修复部分 PDF 报 `need font file or buffer` 的问题）
 
 ### v1.2.0 — 2026-11-23 — 文字编辑所见即所得
 
