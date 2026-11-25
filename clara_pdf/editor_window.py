@@ -472,9 +472,6 @@ class PdfEditorWindow(QMainWindow):
         self.act_annots = QAction(self.i18n.t("editor.toggle_annots"), self)
         self.act_annots.setCheckable(True)
         self.act_annots.setChecked(True)
-        self.act_fields = QAction(self.i18n.t("editor.toggle_fields"), self)
-        self.act_fields.setCheckable(True)
-        self.act_fields.setChecked(True)
         self.act_ocr = QAction(self.i18n.t("editor.ocr"), self)
         ocr_menu = QMenu(self)
         self.act_ocr_page = ocr_menu.addAction(self.i18n.t("editor.ocr_page"))
@@ -485,8 +482,6 @@ class PdfEditorWindow(QMainWindow):
         self.tool_actions: dict[str, QAction] = {}
         for key, _cls in _TOOLS:
             self.tool_actions[key] = QAction(self.i18n.t(key + ".title"), self)
-        self.act_mode_browse = QAction(self.i18n.t("editor.mode_browse"), self)
-        self.act_mode_text = QAction(self.i18n.t("editor.mode_text"), self)
 
         self.tool_group = QActionGroup(self)
         self.tool_group.setExclusive(True)
@@ -494,14 +489,6 @@ class PdfEditorWindow(QMainWindow):
             "editor.annot_highlight", "highlight", checked=True)
         self.act_tool_underline = self._make_tool_action("editor.annot_underline", "underline")
         self.act_tool_note = self._make_tool_action("editor.annot_note", "note")
-
-        self.mode_combo = QComboBox()
-        self.mode_combo.setFixedWidth(112)
-        self.mode_combo.setMinimumHeight(26)
-        self.mode_combo.addItem(self.i18n.t("editor.mode_text"), "text")
-        self.mode_combo.addItem(self.i18n.t("editor.mode_form"), "form")
-        self.mode_combo.addItem(self.i18n.t("editor.mode_browse"), "browse")
-        self.mode_combo.addItem(self.i18n.t("editor.mode_annot"), "annot")
 
         self.zoom_combo = QComboBox()
         self.zoom_combo.setEditable(True)
@@ -526,9 +513,6 @@ class PdfEditorWindow(QMainWindow):
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_undo"))
         group.add_button(self.act_undo)
         group.add_button(self.act_redo)
-        group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_edit"))
-        group.add(self.mode_combo)
-        group.add_button(self.act_fields)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_annot"))
         group.add_button(self.act_tool_highlight)
         group.add_button(self.act_tool_underline)
@@ -550,7 +534,6 @@ class PdfEditorWindow(QMainWindow):
         group.add_button(self.act_fit_page)
         group = self.ribbon.add_group(view, self.i18n.t("ribbon.group_show"))
         group.add_button(self.act_annots)
-        group.add_button(self.act_fields)
 
         # ---- 工具 ----
         tools = self.ribbon.add_tab(self.i18n.t("ribbon.tools"))
@@ -585,10 +568,8 @@ class PdfEditorWindow(QMainWindow):
         self.act_fit_page.triggered.connect(lambda: self._fit("page"))
         self.zoom_combo.activated.connect(lambda _i: self._apply_combo_zoom())
         self.zoom_combo.lineEdit().editingFinished.connect(self._apply_combo_zoom)
-        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         self.tool_group.triggered.connect(self._on_tool_action)
         self.act_annots.toggled.connect(self.view.set_annots_visible)
-        self.act_fields.toggled.connect(self.view.set_fields_visible)
         self.act_ocr_page.triggered.connect(self._ocr_current)
         self.act_ocr_all.triggered.connect(self._ocr_all)
         self.act_back_doc.triggered.connect(self._back_to_document)
@@ -598,10 +579,6 @@ class PdfEditorWindow(QMainWindow):
         for key, action in self.tool_actions.items():
             action.triggered.connect(lambda _=False, k=key: self._show_tool(k))
         self.ribbon.tabs.currentChanged.connect(self._on_ribbon_tab_changed)
-        self.act_mode_browse.triggered.connect(
-            lambda: self.mode_combo.setCurrentIndex(self.mode_combo.findData("browse")))
-        self.act_mode_text.triggered.connect(
-            lambda: self.mode_combo.setCurrentIndex(self.mode_combo.findData("text")))
 
     def _make_tool_action(self, key: str, tool: str, checked: bool = False) -> QAction:
         action = QAction(self.i18n.t(key), self)
@@ -653,7 +630,6 @@ class PdfEditorWindow(QMainWindow):
         self._set_actions_enabled(True)
         self._set_dirty(False)
         self._update_title()
-        self.view.set_mode(self.mode_combo.currentData())
         self._load_thumbs(confirm_thumbs)
         self._goto(0)
         self._update_undo_redo()
@@ -736,13 +712,11 @@ class PdfEditorWindow(QMainWindow):
         for action in (
             self.act_save, self.act_save_as, self.act_undo, self.act_redo,
             self.act_prev, self.act_next, self.act_zoom_in, self.act_zoom_out,
-            self.act_fit_width, self.act_fit_page, self.act_annots, self.act_fields,
+            self.act_fit_width, self.act_fit_page, self.act_annots,
             self.act_ocr, self.act_ocr_page, self.act_ocr_all,
-            self.act_mode_browse, self.act_mode_text,
             self.act_tool_highlight, self.act_tool_underline, self.act_tool_note,
         ):
             action.setEnabled(enabled)
-        self.mode_combo.setEnabled(enabled)
         self.zoom_combo.setEnabled(enabled)
 
     def open_document(self, path: str) -> bool:
@@ -907,12 +881,11 @@ class PdfEditorWindow(QMainWindow):
         self._rebuild_for_language()
 
     def _rebuild_for_language(self) -> None:
-        """原地重建界面以应用新语言，保留文档、页码、缩放与当前工具。"""
+        """原地重建界面以应用新语言，保留文档、页码与缩放。"""
         engine = self.engine
         dirty = self._dirty
         tool = self._current_tool
         tab = self.ribbon.tabs.currentIndex()
-        mode = self.mode_combo.currentData()
         dpi = self.view.dpi
         page_idx = self.view.page_idx
 
@@ -942,10 +915,6 @@ class PdfEditorWindow(QMainWindow):
         else:
             self._attach_engine(confirm_thumbs=False)
             self._set_dirty(dirty)
-            idx = self.mode_combo.findData(mode)
-            if idx >= 0:
-                self.mode_combo.setCurrentIndex(idx)
-            self.view.set_mode(mode)
             self._goto(page_idx)
             self._set_dpi(dpi)
             self._update_zoom_label()
@@ -1158,22 +1127,11 @@ class PdfEditorWindow(QMainWindow):
                 return action.data()
         return "highlight"
 
-    def _on_mode_changed(self, _idx: int) -> None:
-        if self.engine is None:
-            return
-        mode = self.mode_combo.currentData()
-        self.view.set_mode(mode)
-        if mode == "annot":
-            self.view.set_annot_tool(self._current_annot_tool())
-        elif mode == "text" and not self.view._spans:
-            self.statusBar().showMessage(self.i18n.t("editor.no_text"), 5000)
-
     def _on_tool_action(self, action: QAction) -> None:
         if self.engine is None:
             return
-        idx = self.mode_combo.findData("annot")
-        if self.mode_combo.currentIndex() != idx:
-            self.mode_combo.setCurrentIndex(idx)
+        # 批注工具自动切换到批注模式
+        self.view.set_mode("annot")
         self.view.set_annot_tool(action.data())
 
     # ---------------- OCR ----------------

@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.7-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.8-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.7** — recent files, ported from ClaraMarkdownEditor: a “Recent” dropdown in the ribbon lists the last PDFs with bold names, elided paths and timestamps, opens them with one click, supports right-click removal, a hidden toggle, clearing and per-app settings for count and age.
+> **Latest release: v1.2.8** — removed the edit-mode selector. Browse / form / annot modes were silently no‑op, so the ribbon now drops the “Edit” group and `PdfPageView` defaults straight to text mode: open a PDF and click the text to edit immediately. The comment tools still auto‑switch to annot mode when clicked.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.8 — 2026-11-25 — Edit-mode selector removed; open → edit directly
+
+- **Dropped the “Edit” group** from the Home ribbon. The combo that switched between *Text* / *Form* / *Browse* / *Annot* never did anything for form or browse, so it's gone
+- **Defaults to text mode.** `PdfPageView` now initializes with `_mode = "text"`, so opening a PDF immediately puts every span in edit-on-click mode — no extra switch needed
+- **Comment tools still work.** Clicking the highlight / underline / note buttons auto-switches the canvas to annot mode, so the ribbon still exposes the same capability, just without the dead combo
 
 ### v1.2.7 — 2026-11-24 — Recent files (ported from ClaraMarkdownEditor)
 
@@ -327,7 +333,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.7** — 从 ClaraMarkdownEditor 移植「最近文件」：开始功能区新增下拉菜单，列出最近打开的 PDF（加粗文件名 + 省略路径 + 时间），单击直接打开，右键可单独移除，支持隐藏、清空，并可设置显示条数与天数范围。
+> **最新版本：v1.2.8** — 取消编辑模式下拉选择器，打开 PDF 直接进入可编辑状态。原来的表单 / 浏览 / 批注三个模式切换后实际上没有任何作用，现已移除；批注工具按钮点击时会自动切到批注模式，功能保留。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -423,7 +429,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.6 已备份至 `ClaraPDFPro_Backups\1.2.6_可拖动分隔条`，准备 v1.2.8 时创建下一份备份。
+> v1.2.7 已备份至 `ClaraPDFPro_Backups\1.2.7_最近文件`，准备 v1.2.9 时创建下一份备份。
 
 ## 后续计划
 
@@ -433,6 +439,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.8 — 2026-11-25 — 取消编辑模式选择器，打开 PDF 直接编辑
+
+- **移除了开始功能区的「编辑」组**。原来的下拉框（文字 / 表单 / 浏览 / 批注）切换到表单 / 浏览模式后界面没有任何变化，干脆拿掉
+- **默认就是文字编辑模式**。`PdfPageView` 初始化时直接 `_mode = "text"`，打开 PDF 后每段文字立刻进入可点击编辑的状态，不再需要额外切换
+- **批注工具不受影响**。点击高亮 / 下划线 / 便签按钮时会自动切到批注模式，功能完全保留，只是把切换逻辑从 UI 上的下拉框改成了内部自动切换
 
 ### v1.2.7 — 2026-11-24 — 最近文件（移植自 ClaraMarkdownEditor）
 

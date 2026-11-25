@@ -262,8 +262,8 @@ class PdfPageView(QWidget):
         self._editor_xref: int | None = None
         self._editor_span: dict | None = None
 
-        self._mode = "form"
-        self._show_fields = True
+        self._mode = "text"
+        self._show_fields = False
         self._annots_visible = True
         self._annot_tool = "highlight"
         self._sel_start: QPoint | None = None
