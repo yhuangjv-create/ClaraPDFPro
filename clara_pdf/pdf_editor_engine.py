@@ -405,15 +405,26 @@ class PdfEditorEngine:
 
     def select_rects(self, idx: int, x0: float, y0: float,
                      x1: float, y1: float) -> list[tuple[float, float, float, float]]:
-        """把矩形选择转换为按行合并的文本矩形列表（用于高亮 / 下划线）。"""
+        """把矩形选择转换为逐字符文本矩形，仅合并同行连续选中的字符。"""
         sel = pymupdf.Rect(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
-        groups: dict[tuple[int, int], pymupdf.Rect] = {}
-        for w in self._page(idx).get_text("words"):
-            wr = pymupdf.Rect(w[:4])
-            if wr.intersects(sel):
-                key = (w[5], w[6])
-                groups[key] = groups[key] | wr if key in groups else wr
-        return [tuple(r) for r in groups.values()]
+        rects: list[tuple[float, float, float, float]] = []
+        for block in self._page(idx).get_text("rawdict")["blocks"]:
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", []):
+                run: pymupdf.Rect | None = None
+                for span in line.get("spans", []):
+                    for char in span.get("chars", []):
+                        char_rect = pymupdf.Rect(char["bbox"])
+                        overlap = char_rect & sel
+                        if char_rect.intersects(sel) and not overlap.is_empty:
+                            run = run | char_rect if run is not None else char_rect
+                        elif run is not None:
+                            rects.append(tuple(run))
+                            run = None
+                if run is not None:
+                    rects.append(tuple(run))
+        return rects
 
     # ---------------- 批注 ----------------
     def add_highlight(self, idx: int, rects: list) -> bool:

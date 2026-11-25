@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.8-2b579a)
+![Version](https://img.shields.io/badge/version-1.2.9-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.8** — removed the edit-mode selector. Browse / form / annot modes were silently no‑op, so the ribbon now drops the “Edit” group and `PdfPageView` defaults straight to text mode: open a PDF and click the text to edit immediately. The comment tools still auto‑switch to annot mode when clicked.
+> **Latest release: v1.2.9** — highlight and underline selections are now character-precise. Only characters touched by the drag rectangle are annotated; the selection no longer expands to whole words or merges unrelated text across a line.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.2.9 — 2026-11-25 — Character-precise highlight and underline
+
+- **No more word or line expansion.** `select_rects()` now intersects the drag rectangle with individual character boxes from `rawdict` instead of selecting whole words and merging every hit on a line
+- **Only the selected characters are annotated.** Consecutive selected characters are grouped into clean per-line rectangles, while adjacent unselected letters, words and Chinese characters stay untouched
+- **Verified at annotation-geometry level.** Partial selections of a single English letter, several letters and one Chinese character produce highlight / underline vertices covering exactly those characters; all 19 offscreen regression tests pass
 
 ### v1.2.8 — 2026-11-25 — Edit-mode selector removed; open → edit directly
 
@@ -333,7 +339,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.8** — 取消编辑模式下拉选择器，打开 PDF 直接进入可编辑状态。原来的表单 / 浏览 / 批注三个模式切换后实际上没有任何作用，现已移除；批注工具按钮点击时会自动切到批注模式，功能保留。
+> **最新版本：v1.2.9** — 高亮与下划线改为逐字符精准框选。只有拖框实际碰到的字符才会添加批注，不再自动扩展为整个单词，也不会把同一行中未选中的文字合并进来。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -429,7 +435,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.7 已备份至 `ClaraPDFPro_Backups\1.2.7_最近文件`，准备 v1.2.9 时创建下一份备份。
+> v1.2.8 已备份至 `ClaraPDFPro_Backups\1.2.8_默认直接编辑`，准备 v1.2.10 时创建下一份备份。
 
 ## 后续计划
 
@@ -439,6 +445,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.2.9 — 2026-11-25 — 高亮与下划线按字精准框选
+
+- **不再扩展到整个单词或整行。** `select_rects()` 改为读取 `rawdict` 中每个字符的边界，只保留与拖框实际相交的字符，取代原先按单词命中再合并整行的逻辑
+- **只批注选中的文字。** 同行连续选中的字符会合并为整洁的批注矩形，相邻但未选中的英文字母、单词和中文字符均不受影响
+- **按批注实际顶点验证。** 英文单个字母、连续几个字母及中文单字的部分框选，都只生成对应字符的高亮 / 下划线；全部 19 项离屏回归测试通过
 
 ### v1.2.8 — 2026-11-25 — 取消编辑模式选择器，打开 PDF 直接编辑
 
