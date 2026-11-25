@@ -276,6 +276,10 @@ class PdfPageView(QWidget):
         self._sel_rect_page: int | None = None
         self._sel_rect: QRect | None = None
 
+        # 文本模式下已选中的字符级矩形（逐行连续字符分组）
+        self._text_sel_rects: list[tuple[float, float, float, float]] = []
+        self._text_sel_page: int | None = None
+
         if engine is not None:
             self._rebuild_pages()
 
@@ -297,6 +301,8 @@ class PdfPageView(QWidget):
         self._sel_start = None
         self._sel_rect = None
         self._sel_rect_page = None
+        self._text_sel_rects = []
+        self._text_sel_page = None
         if engine is not None:
             self._rebuild_pages()
         else:
@@ -444,9 +450,23 @@ class PdfPageView(QWidget):
                 rect2 = self._bbox_rect(page_spans[self._hover_span]["bbox"], page_top)
                 painter.fillRect(rect2, COL_TEXT_HOVER)
 
-        # 批注框选
-        if self._mode == "annot" and self._sel_rect is not None:
+        # 批注框选（annot 模式）/ 拖动选区（text 模式）
+        if self._sel_rect is not None:
             painter.fillRect(self._sel_rect.normalized(), COL_SELECTION)
+
+        # 文本模式下已选中的字符级矩形（更精准，覆盖拖动框）
+        if self._mode == "text" and self._text_sel_rects \
+                and self._text_sel_page is not None:
+            page_top = self._page_offsets[self._text_sel_page]
+            s = self.scale
+            for r in self._text_sel_rects:
+                rect = QRect(
+                    int(r[0] * s),
+                    int(page_top + r[1] * s),
+                    max(1, int((r[2] - r[0]) * s)),
+                    max(1, int((r[3] - r[1]) * s)),
+                )
+                painter.fillRect(rect, COL_SELECTION)
 
     def _bbox_rect(self, bbox, page_top: int = 0) -> QRect:
         s = self.scale
@@ -506,15 +526,8 @@ class PdfPageView(QWidget):
             self.setCursor(Qt.IBeamCursor if f is not None and not f.readonly
                            else Qt.ArrowCursor)
             self.update()
-        elif self._mode == "text":
-            local_point = QPoint(pos.x(), pos.y() - self._page_offsets[page_idx])
-            idx = self._span_at(page_idx, local_point)
-            if idx != self._hover_span:
-                self._hover_span = idx
-                self.setCursor(Qt.IBeamCursor if idx is not None else Qt.ArrowCursor)
-                self.update()
-        elif self._mode == "annot":
-            if self._sel_start is not None and self._annot_tool != "note":
+        elif self._mode in ("text", "annot"):
+            if self._sel_start is not None:
                 self._sel_rect = QRect(self._sel_start, pos)
                 self._sel_rect_page = page_idx
                 self.update()
@@ -538,11 +551,15 @@ class PdfPageView(QWidget):
                 self._open_editor(f, page_idx, page_top)
                 return
         elif self._mode == "text":
-            idx = self._span_at(page_idx, local_point)
-            if idx is not None:
-                self._open_text_editor(
-                    self._all_spans[page_idx][idx], page_idx, page_top, pos)
-                return
+            # 文本模式：记录起点，拖动产生选区；单击→打开编辑器在 release 时判定
+            self._close_editor(commit=True)
+            self._sel_start = pos
+            self._sel_rect = QRect(pos, pos)
+            self._sel_rect_page = page_idx
+            self._text_sel_rects = []
+            self._text_sel_page = None
+            self.update()
+            return
         elif self._mode == "annot":
             if self._annot_tool == "note":
                 self._place_note(pos, page_idx)
@@ -557,16 +574,45 @@ class PdfPageView(QWidget):
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if self._mode == "annot" and self._sel_start is not None:
-            start = self._sel_start
-            end = event.position().toPoint()
-            self._sel_start = None
-            if abs(end.x() - start.x()) >= 2 or abs(end.y() - start.y()) >= 2:
-                # 框选跨页只在同页内生效；跨页就按"上到下全部"处理
-                self._apply_selection(start, end)
-            self._sel_rect = None
-            self.update()
+        if self._sel_start is None:
+            super().mouseReleaseEvent(event)
             return
+
+        start = self._sel_start
+        end = event.position().toPoint()
+        page_idx = self._sel_rect_page
+        moved = abs(end.x() - start.x()) >= 2 or abs(end.y() - start.y()) >= 2
+        self._sel_start = None
+        self._sel_rect = None
+        self.update()
+
+        if self._mode == "annot":
+            if moved:
+                self._apply_selection(start, end)
+            return
+
+        if self._mode == "text":
+            if moved and page_idx is not None:
+                # 拖动产生选区 → 计算逐字符矩形
+                page_top = self._page_offsets[page_idx]
+                s = self.scale
+                rects = self.engine.select_rects(
+                    page_idx,
+                    start.x() / s, (start.y() - page_top) / s,
+                    end.x() / s, (end.y() - page_top) / s)
+                self._text_sel_rects = rects
+                self._text_sel_page = page_idx if rects else None
+                self.update()
+            elif page_idx is not None:
+                # 单击 → 打开行内编辑器
+                page_top = self._page_offsets[page_idx]
+                local_point = QPoint(end.x(), end.y() - page_top)
+                idx = self._span_at(page_idx, local_point)
+                if idx is not None:
+                    self._open_text_editor(
+                        self._all_spans[page_idx][idx], page_idx, page_top, end)
+            return
+
         super().mouseReleaseEvent(event)
 
     def _span_at(self, page_idx: int, local_point: QPoint) -> int | None:
@@ -839,6 +885,37 @@ class PdfPageView(QWidget):
                 self.content_changed.emit()
         except Exception as exc:  # noqa: BLE001
             self.status.emit(str(exc))
+
+    def has_text_selection(self) -> bool:
+        """文本模式下是否有已选中的字符级矩形。"""
+        return bool(self._text_sel_rects) and self._text_sel_page is not None
+
+    def apply_selected(self, tool: str) -> bool:
+        """对文本模式下已选中的矩形应用高亮或下划线，应用后清除选中。"""
+        if not self.has_text_selection():
+            return False
+        page_idx = self._text_sel_page
+        rects = self._text_sel_rects
+        color = self._annot_colors.get(tool)
+        try:
+            if tool == "underline":
+                ok = self.engine.add_underline(page_idx, rects, color)
+            else:
+                ok = self.engine.add_highlight(page_idx, rects, color)
+            if ok:
+                self._text_sel_rects = []
+                self._text_sel_page = None
+                self.content_changed.emit()
+                self.update()
+            return ok
+        except Exception as exc:  # noqa: BLE001
+            self.status.emit(str(exc))
+            return False
+
+    def clear_text_selection(self) -> None:
+        self._text_sel_rects = []
+        self._text_sel_page = None
+        self.update()
 
     def _place_note(self, point: QPoint, page_idx: int) -> None:
         text, ok = QInputDialog.getMultiLineText(

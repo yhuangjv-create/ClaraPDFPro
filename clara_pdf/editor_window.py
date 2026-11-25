@@ -1182,12 +1182,23 @@ class PdfEditorWindow(QMainWindow):
     def _on_tool_action(self, action: QAction) -> None:
         if self.engine is None:
             return
-        # 批注工具自动切换到批注模式，并应用该工具最近选择的颜色
         tool = action.data()
-        if tool in self._annot_colors:
-            self.view.set_annot_color(tool, self._annot_colors[tool])
-        self.view.set_mode("annot")
-        self.view.set_annot_tool(tool)
+        if tool not in self._annot_colors:
+            # 便签：保持原逻辑
+            self.view.set_mode("annot")
+            self.view.set_annot_tool(tool)
+            return
+        # 批注工具：应用该工具最近选择的颜色
+        self.view.set_annot_color(tool, self._annot_colors[tool])
+        # 文本模式下如果已有选中文字，直接打批注；否则切到 annot 模式让用户框选
+        if self.view._mode == "text" and self.view.has_text_selection():
+            self.view.apply_selected(tool)
+            # 保持在 text 模式，方便继续编辑或再次选择
+            self.view.set_mode("text")
+            self.view.set_annot_tool(tool)
+        else:
+            self.view.set_mode("annot")
+            self.view.set_annot_tool(tool)
 
     # ---------------- OCR ----------------
     def _ocr_current(self) -> None:
