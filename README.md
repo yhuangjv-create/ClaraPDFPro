@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.3.2-2b579a)
+![Version](https://img.shields.io/badge/version-1.3.3-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.3.2** — text mode now behaves like Word. Click between characters → flashing caret. Drag → the dragged characters darken. Then click Highlight or Underline and they get annotated; both tools keep the color you last chose. Clicking the button without a text selection falls back to annot-mode framing.
+> **Latest release: v1.3.3** — fixed two regressions in the Word-style selection introduced by v1.3.2. Clicking between characters now opens the inline editor with the caret where you actually clicked (not offset to a character boundary), and dragging to select uses your actual Y mouse coordinate so multi-line selections look natural. All 20 offscreen regression tests pass.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.3.3 — 2026-11-25 — Fix click→editor offset and drag Y-coordinate regressions
+
+- **Clicking between characters → editor caret lands where you actually clicked.** v1.3.2 passed the cursor-boundary coordinates (`cursor_x`, `cursor_y`) into `_open_text_editor()`, which made the inline `_caret_index()` put the caret a char off. v1.3.3 reverts to passing the original mouse-release point so caret, `_caret_index()` and inline editor position all align on the user's click
+- **Drag Y-range uses the real click Y.** The anchor/current Y for `select_rects()` in v1.3.2 was hard-coded to `origin[1]` (the PDF baseline, usually 1–3 px below the actual glyph body). `_cursor_pos_at()` now returns the click Y, so vertical drags cover the full span height and multi-line selections behave correctly
+- **All 20 offscreen regression tests pass.** No v1.3.2/v1.3.1/v1.3.0/v1.2.9 functionality was regressed
 
 ### v1.3.2 — 2026-11-25 — Word-style text selection + caret blinking
 
@@ -358,7 +364,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.3.2** — 文字选择改成 Word 风格：点中两个字符之间 → 光标闪烁；往左拖 → 被选中的文字变暗；然后点高亮或下划线按钮即可打批注，两个工具分别记住自己最近选的颜色。没有活动选中时点按钮回退到批注框选模式。
+> **最新版本：v1.3.3** — 修复 v1.3.2 Word 风格选择引入的两个回归：① 单击两个字符之间时，行内编辑器内的光标不再偏移一个字符，精准落在用户点击位置；② 拖动选择时的 Y 坐标改用实际点击位置而非 baseline，多行选择范围自然。全部 20 项离屏回归测试通过。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -454,7 +460,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.3.1 已备份至 `ClaraPDFPro_Backups\1.3.1_先选文字再点批注`，准备 v1.3.3 时创建下一份备份。
+> v1.3.2 已备份至 `ClaraPDFPro_Backups\1.3.2_Word风格选择与光标闪烁`，准备 v1.3.4 时创建下一份备份。
 
 ## 后续计划
 
@@ -464,6 +470,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.3.3 — 2026-11-25 — 修复点击→编辑器偏移和拖动 Y 回归
+
+- **单击两个字符之间 → 编辑器内光标精准落在点击位置。** v1.3.2 把光标边界坐标（`cursor_x`, `cursor_y`）传给了 `_open_text_editor()`，导致 `_caret_index()` 多偏移一个字符。v1.3.3 改回传用户实际点击的 release 坐标，行内编辑器光标、`_caret_index()` 和用户点击位置三者一致
+- **拖动 Y 范围用真实点击 Y。** v1.3.2 把 anchor/current 的 Y 硬编码为 `origin[1]`（PDF baseline，通常比实际字形低 1-3 px），导致 `select_rects()` 的纵向范围过窄。`_cursor_pos_at()` 现在返回用户点击的 y 值，多行选择和垂直拖动都自然
+- **全部 20 项离屏回归测试通过**，v1.3.2/v1.3.1/v1.3.0/v1.2.9 功能均未回退
 
 ### v1.3.2 — 2026-11-25 — Word 风格文字选择 + 光标闪烁
 

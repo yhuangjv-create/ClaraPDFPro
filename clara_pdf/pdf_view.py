@@ -674,7 +674,7 @@ class PdfPageView(QWidget):
                 self.update()
                 return
 
-            # 单击：打开行内编辑器，光标停在该位置
+            # 单击：打开行内编辑器，光标停在用户实际点击的位置
             self._cursor_timer.stop()
             self._cursor_anchor = None
             if self._cursor_page is not None \
@@ -683,13 +683,7 @@ class PdfPageView(QWidget):
                     and 0 <= self._cursor_span < len(self._all_spans[self._cursor_page]):
                 span = self._all_spans[self._cursor_page][self._cursor_span]
                 page_top = self._page_offsets[self._cursor_page]
-                # 把 PDF 坐标的光标位置转画布坐标
-                s = self.scale
-                click = QPoint(
-                    int(self._cursor_x * s),
-                    int(page_top + self._cursor_y * s),
-                )
-                self._open_text_editor(span, self._cursor_page, page_top, click)
+                self._open_text_editor(span, self._cursor_page, page_top, end)
             self.update()
             return
 
@@ -731,7 +725,6 @@ class PdfPageView(QWidget):
 
         span = spans[best_span]
         origin = span.get("origin", (pdf_x, (bbox := span["bbox"]) and (bbox[1] + bbox[3]) / 2))
-        cursor_y = origin[1]
 
         # 构造该 span 所有字符的 PDF 坐标 bbox 列表
         chars: list[tuple[float, float]] = []  # (left_x, right_x)
@@ -758,8 +751,8 @@ class PdfPageView(QWidget):
             # fallback：用 span 的整体 bbox
             bbox = span["bbox"]
             if pdf_x <= bbox[0]:
-                return bbox[0], cursor_y, best_span
-            return bbox[2], cursor_y, best_span
+                return bbox[0], pdf_y, best_span
+            return bbox[2], pdf_y, best_span
 
         # 找到离 pdf_x 最近的字符边界
         if pdf_x <= chars[0][0]:
@@ -773,7 +766,7 @@ class PdfPageView(QWidget):
                     cursor_x = cl if (pdf_x - cl) < (cr - pdf_x) else cr
                     break
 
-        return cursor_x, cursor_y, best_span
+        return cursor_x, pdf_y, best_span
 
     def _blink_cursor(self) -> None:
         """光标闪烁回调。"""
