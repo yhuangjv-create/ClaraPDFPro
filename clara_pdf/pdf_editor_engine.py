@@ -427,13 +427,16 @@ class PdfEditorEngine:
         return rects
 
     # ---------------- 批注 ----------------
-    def add_highlight(self, idx: int, rects: list) -> bool:
-        return self._add_markup(idx, "highlight", rects)
+    def add_highlight(self, idx: int, rects: list,
+                      color: tuple[float, float, float] | None = None) -> bool:
+        return self._add_markup(idx, "highlight", rects, color)
 
-    def add_underline(self, idx: int, rects: list) -> bool:
-        return self._add_markup(idx, "underline", rects)
+    def add_underline(self, idx: int, rects: list,
+                      color: tuple[float, float, float] | None = None) -> bool:
+        return self._add_markup(idx, "underline", rects, color)
 
-    def _add_markup(self, idx: int, kind: str, rects: list) -> bool:
+    def _add_markup(self, idx: int, kind: str, rects: list,
+                    color: tuple[float, float, float] | None = None) -> bool:
         if not rects:
             return False
         self._push_undo()
@@ -444,6 +447,8 @@ class PdfEditorEngine:
                 annot = page.add_underline_annot(prects)
             else:
                 annot = page.add_highlight_annot(prects)
+            if color is not None:
+                annot.set_colors(stroke=color)
             annot.update()
         except Exception as exc:  # noqa: BLE001
             self._undo.pop()

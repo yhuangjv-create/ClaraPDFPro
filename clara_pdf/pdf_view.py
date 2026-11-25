@@ -40,6 +40,11 @@ COL_TEXT_OVERLAY = QColor(43, 87, 154, 30)
 COL_TEXT_HOVER = QColor(43, 87, 154, 45)
 COL_SELECTION = QColor(43, 87, 154, 70)
 
+DEFAULT_ANNOT_COLORS = {
+    "highlight": (1.0, 1.0, 0.0),
+    "underline": (0.0, 1.0, 0.0),
+}
+
 # PDF 内嵌字体名 → 系统可用字体族（键为去掉非字母后的全小写名）
 _QT_FAMILY_ALIASES = {
     # base-14 / PDF 内部短名
@@ -266,6 +271,7 @@ class PdfPageView(QWidget):
         self._show_fields = False
         self._annots_visible = True
         self._annot_tool = "highlight"
+        self._annot_colors = dict(DEFAULT_ANNOT_COLORS)
         self._sel_start: QPoint | None = None
         self._sel_rect_page: int | None = None
         self._sel_rect: QRect | None = None
@@ -357,6 +363,9 @@ class PdfPageView(QWidget):
             return
         self.setCursor(Qt.CrossCursor if tool == "note" else Qt.IBeamCursor)
         self.update()
+
+    def set_annot_color(self, tool: str, color: tuple[float, float, float]) -> None:
+        self._annot_colors[tool] = color
 
     def set_dpi(self, dpi: float) -> None:
         self.dpi = float(dpi)
@@ -821,10 +830,11 @@ class PdfPageView(QWidget):
             self.status.emit(self.i18n.t("editor.no_text"))
             return
         try:
+            color = self._annot_colors[self._annot_tool]
             if self._annot_tool == "underline":
-                ok = self.engine.add_underline(page_idx, rects)
+                ok = self.engine.add_underline(page_idx, rects, color)
             else:
-                ok = self.engine.add_highlight(page_idx, rects)
+                ok = self.engine.add_highlight(page_idx, rects, color)
             if ok:
                 self.content_changed.emit()
         except Exception as exc:  # noqa: BLE001

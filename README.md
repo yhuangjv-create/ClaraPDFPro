@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.2.9-2b579a)
+![Version](https://img.shields.io/badge/version-1.3.0-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.2.9** — highlight and underline selections are now character-precise. Only characters touched by the drag rectangle are annotated; the selection no longer expands to whole words or merges unrelated text across a line.
+> **Latest release: v1.3.0** — added split-button color menus for highlight and underline. Choose yellow, green, red, blue, purple or orange from either button's arrow; each tool remembers its own color and writes it into the PDF. Defaults remain yellow for highlight and green for underline.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,12 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.3.0 — 2026-11-25 — Highlight and underline color menus
+
+- **Split-button color selection.** Click the main button to activate the tool, or its arrow to open a six-color menu with swatches, bilingual names and a checkmark for the current choice. Choosing a color also activates that tool
+- **Independent colors, preserved in the PDF.** Highlight and underline each remember their own selection. The chosen RGB value is written to the annotation's `stroke` color and survives save / reopen; existing defaults remain yellow highlight and green underline
+- **Language-safe.** Switching between Chinese and English rebuilds the menus without losing either color choice. Actual annotation colors, persistence, UI state and all 20 offscreen regression tests pass
 
 ### v1.2.9 — 2026-11-25 — Character-precise highlight and underline
 
@@ -339,7 +345,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.2.9** — 高亮与下划线改为逐字符精准框选。只有拖框实际碰到的字符才会添加批注，不再自动扩展为整个单词，也不会把同一行中未选中的文字合并进来。
+> **最新版本：v1.3.0** — 高亮与下划线按钮新增独立下拉选色菜单。点击按钮右侧箭头，可选择黄、绿、红、蓝、紫、橙六种颜色；两个工具分别记住自己的颜色并写入 PDF，默认仍为高亮黄色、下划线绿色。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -435,7 +441,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.2.8 已备份至 `ClaraPDFPro_Backups\1.2.8_默认直接编辑`，准备 v1.2.10 时创建下一份备份。
+> v1.2.9 已备份至 `ClaraPDFPro_Backups\1.2.9_批注逐字精准框选`，准备 v1.3.1 时创建下一份备份。
 
 ## 后续计划
 
@@ -445,6 +451,12 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.3.0 — 2026-11-25 — 高亮与下划线下拉选色
+
+- **分离式按钮。** 点击按钮主体启用对应工具，点击右侧箭头打开六色菜单；菜单显示色块、中英文颜色名称与当前勾选项，选择颜色后也会自动启用该工具
+- **两个工具独立记色并写入 PDF。** 高亮与下划线分别保存自己的选择，所选 RGB 颜色写入批注的 `stroke` 属性，保存并重新打开后仍保持；默认颜色不变，仍为高亮黄色、下划线绿色
+- **切换语言不丢颜色。** 中英文界面重建后，两个工具的选色及菜单勾选项均保留；实际批注颜色、保存重开、UI 状态与全部 20 项离屏回归测试通过
 
 ### v1.2.9 — 2026-11-25 — 高亮与下划线按字精准框选
 
