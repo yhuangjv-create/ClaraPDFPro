@@ -2,13 +2,13 @@
 
 # ClaraPDFPro
 
-![Version](https://img.shields.io/badge/version-1.3.3-2b579a)
+![Version](https://img.shields.io/badge/version-1.3.4-2b579a)
 ![License](https://img.shields.io/badge/license-MIT-2b579a)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 **English** | [简体中文](#zh)
 
-> **Latest release: v1.3.3** — fixed two regressions in the Word-style selection introduced by v1.3.2. Clicking between characters now opens the inline editor with the caret where you actually clicked (not offset to a character boundary), and dragging to select uses your actual Y mouse coordinate so multi-line selections look natural. All 20 offscreen regression tests pass.
+> **Latest release: v1.3.4** — removed the Highlight and Underline tools. Their text-selection flow interfered with real editing, so text mode is back to the simplest Word-like behavior: click a character and the inline editor opens at once, ready to type. The Note tool remains. All 21 offscreen regression tests pass.
 > **[→ Jump to Changelog](#changelog)**
 
 ClaraPDFPro is a local, offline PDF toolkit for Windows. It starts as a PDF editor with an Office-style ribbon, converts PDF to and from Word / Excel, compresses PDFs to a chosen DPI or file size, organizes pages visually, exports pages as images, builds PDFs from images, and protects documents with passwords. Nothing is uploaded — every operation runs on your machine.
@@ -114,6 +114,14 @@ Before every release, back up the **previous** version completely:
 ## Changelog
 
 <a id="changelog"></a>
+
+### v1.3.4 — 2026-11-26 — Remove Highlight / Underline tools
+
+- **Highlight and Underline are gone.** They needed a text-selection layer over the canvas, and that layer got in the way of real editing — clicks between characters and drags no longer flow straight into the inline editor. Removing the tools removes the interference
+- **Text mode is back to one simple gesture.** Mouse press on a character opens the inline `_LineEdit` immediately at that spot; clicking blank space does nothing; dragging on the canvas no longer selects or annotates anything
+- **Note tool kept.** The Note button stays in the Home ribbon and still enters annot mode for placing sticky notes
+- **Dead code removed** — `_apply_selection`, `has_text_selection`, `apply_selected`, `clear_text_selection`, `set_annot_color`, caret timer, dim mask, and the v1.3.0 color menus are all gone. Engine-level `add_highlight` / `add_underline` remain for annotation rendering of existing PDFs
+- **All 21 offscreen regression tests pass** (v1.3.3 annot tests updated to the new behavior)
 
 ### v1.3.3 — 2026-11-25 — Fix click→editor offset and drag Y-coordinate regressions
 
@@ -364,7 +372,7 @@ Released under the [MIT License](LICENSE).
 
 [English](#top) | **简体中文**
 
-> **最新版本：v1.3.3** — 修复 v1.3.2 Word 风格选择引入的两个回归：① 单击两个字符之间时，行内编辑器内的光标不再偏移一个字符，精准落在用户点击位置；② 拖动选择时的 Y 坐标改用实际点击位置而非 baseline，多行选择范围自然。全部 20 项离屏回归测试通过。
+> **最新版本：v1.3.4** — 已移除「高亮」和「下划线」工具。它们的文字选择层会干扰正常编辑，所以文字模式回归最简洁的 Word 式操作：点中哪个字，行内编辑器立刻在该处打开，直接改字。便签工具保留。全部 21 项离屏回归测试通过。
 > **[→ 一键直达版本号更迭记录](#changelog-zh)**
 
 ClaraPDFPro 是一款完全本地运行的 Windows PDF 工具箱：启动即为 PDF 编辑器（Office 风格功能区），支持 PDF 与 Word / Excel 双向转换、按 DPI 或目标体积压缩、可视化页面管理、PDF 转图片、图片转 PDF 以及密码加密。所有处理均在本机完成，文件不会上传。
@@ -460,7 +468,7 @@ ClaraPDFPro/
 4. 更新本 README 顶部的“最新版本”信息，并在更新记录中新增条目。
 5. 运行冒烟测试后发布。
 
-> v1.3.2 已备份至 `ClaraPDFPro_Backups\1.3.2_Word风格选择与光标闪烁`，准备 v1.3.4 时创建下一份备份。
+> v1.3.3 已备份至 `ClaraPDFPro_Backups\1.3.3_修复光标偏移回归`，准备 v1.3.5 时创建下一份备份。
 
 ## 后续计划
 
@@ -470,6 +478,14 @@ ClaraPDFPro/
 ## 版本号更迭记录
 
 <a id="changelog-zh"></a>
+
+### v1.3.4 — 2026-11-26 — 移除「高亮」「下划线」工具
+
+- **高亮与下划线已移除。** 它们需要在画布上加一层文字选择，而这层选择会挡住正常编辑——点字符之间、拖动都无法顺畅进入行内编辑器。移掉工具即移掉干扰
+- **文字模式恢复单一步骤。** 鼠标在字符上按下，行内 `_LineEdit` 立刻在该处打开；点空白处无反应；在画布上拖动不再产生选择或批注
+- **便签保留。** Home 功能区的便签按钮仍在，点击后进入批注模式放置便签
+- **清理死代码** —— `_apply_selection`、`has_text_selection`、`apply_selected`、`clear_text_selection`、`set_annot_color`、光标定时器、变暗遮罩、v1.3.0 的颜色菜单全部移除。引擎层 `add_highlight` / `add_underline` 保留，用于显示原 PDF 中已有的批注
+- **全部 21 项离屏回归测试通过**（v1.3.3 的批注测试已按新行为更新）
 
 ### v1.3.3 — 2026-11-25 — 修复点击→编辑器偏移和拖动 Y 回归
 

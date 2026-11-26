@@ -15,11 +15,9 @@ from PySide6.QtCore import QEvent, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
-    QColor,
     QIcon,
     QKeySequence,
     QPalette,
-    QPixmap,
     QShortcut,
 )
 from PySide6.QtWidgets import (
@@ -67,7 +65,7 @@ from .pages import (
     SecurityPage,
 )
 from .pdf_editor_engine import PdfEditorEngine, PdfEngineError
-from .pdf_view import DEFAULT_ANNOT_COLORS, PdfPageView
+from .pdf_view import PdfPageView
 from .settings import Settings
 from .theme import build_palette, build_stylesheet
 
@@ -77,16 +75,6 @@ THUMB_W = 128
 THUMB_H = 170
 THUMB_GRID_W = 134
 THUMB_GRID_H = 202
-
-_ANNOT_COLOR_CHOICES = (
-    ("yellow", (1.0, 1.0, 0.0)),
-    ("green", (0.0, 1.0, 0.0)),
-    ("red", (1.0, 0.0, 0.0)),
-    ("blue", (0.0, 0.35, 1.0)),
-    ("purple", (0.65, 0.2, 1.0)),
-    ("orange", (1.0, 0.55, 0.0)),
-)
-_ANNOT_COLOR_VALUES = dict(_ANNOT_COLOR_CHOICES)
 
 # 嵌入到「工具」标签页的模块（键与 i18n 前缀一致）
 _TOOLS = (
@@ -261,8 +249,6 @@ class PdfEditorWindow(QMainWindow):
         self._tool_pages: dict[str, QWidget] = {}
         self._current_tool: str | None = None
         self._tools_tab = 2
-        self._annot_colors = dict(DEFAULT_ANNOT_COLORS)
-        self.annot_color_actions: dict[str, list[QAction]] = {}
 
         self.setWindowIcon(make_app_icon())
         self.setWindowTitle(self.i18n.t("editor.window_title_empty"))
@@ -498,17 +484,7 @@ class PdfEditorWindow(QMainWindow):
 
         self.tool_group = QActionGroup(self)
         self.tool_group.setExclusive(True)
-        self.act_tool_highlight = self._make_tool_action(
-            "editor.annot_highlight", "highlight", checked=True)
-        self.act_tool_underline = self._make_tool_action("editor.annot_underline", "underline")
         self.act_tool_note = self._make_tool_action("editor.annot_note", "note")
-        self.highlight_color_menu = self._make_annot_color_menu("highlight")
-        self.underline_color_menu = self._make_annot_color_menu("underline")
-        self.act_tool_highlight.setMenu(self.highlight_color_menu)
-        self.act_tool_underline.setMenu(self.underline_color_menu)
-        for action in (self.act_tool_highlight, self.act_tool_underline):
-            action.setToolTip(
-                f"{action.text()} — {self.i18n.t('editor.annot_color_tip')}")
 
         self.zoom_combo = QComboBox()
         self.zoom_combo.setEditable(True)
@@ -534,12 +510,6 @@ class PdfEditorWindow(QMainWindow):
         group.add_button(self.act_undo)
         group.add_button(self.act_redo)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_annot"))
-        self.highlight_btn = group.add_button(self.act_tool_highlight)
-        self.highlight_btn.setMenu(self.highlight_color_menu)
-        self.highlight_btn.setPopupMode(QToolButton.MenuButtonPopup)
-        self.underline_btn = group.add_button(self.act_tool_underline)
-        self.underline_btn.setMenu(self.underline_color_menu)
-        self.underline_btn.setPopupMode(QToolButton.MenuButtonPopup)
         group.add_button(self.act_tool_note)
         group = self.ribbon.add_group(home, self.i18n.t("ribbon.group_ocr"))
         group.add_button(self.act_ocr, popup=True)
@@ -611,34 +581,6 @@ class PdfEditorWindow(QMainWindow):
         action.setChecked(checked)
         self.tool_group.addAction(action)
         return action
-
-    def _make_annot_color_menu(self, tool: str) -> QMenu:
-        self.view.set_annot_color(tool, self._annot_colors[tool])
-        menu = QMenu(self)
-        actions: list[QAction] = []
-        for name, color in _ANNOT_COLOR_CHOICES:
-            swatch = QPixmap(16, 16)
-            swatch.fill(QColor.fromRgbF(*color))
-            action = menu.addAction(QIcon(swatch), self.i18n.t(f"editor.color_{name}"))
-            action.setData(name)
-            action.setCheckable(True)
-            action.setChecked(color == self._annot_colors[tool])
-            action.triggered.connect(
-                lambda _=False, t=tool, n=name: self._on_annot_color(t, n))
-            actions.append(action)
-        self.annot_color_actions[tool] = actions
-        return menu
-
-    def _on_annot_color(self, tool: str, name: str) -> None:
-        color = _ANNOT_COLOR_VALUES[name]
-        self._annot_colors[tool] = color
-        self.view.set_annot_color(tool, color)
-        for action in self.annot_color_actions[tool]:
-            action.setChecked(action.data() == name)
-        tool_action = (
-            self.act_tool_highlight if tool == "highlight" else self.act_tool_underline)
-        tool_action.setChecked(True)
-        self._on_tool_action(tool_action)
 
     def _build_shortcuts(self) -> None:
         QShortcut(QKeySequence("Ctrl+O"), self, activated=self._open_file)
@@ -766,7 +708,7 @@ class PdfEditorWindow(QMainWindow):
             self.act_prev, self.act_next, self.act_zoom_in, self.act_zoom_out,
             self.act_fit_width, self.act_fit_page, self.act_annots,
             self.act_ocr, self.act_ocr_page, self.act_ocr_all,
-            self.act_tool_highlight, self.act_tool_underline, self.act_tool_note,
+            self.act_tool_note,
         ):
             action.setEnabled(enabled)
         self.zoom_combo.setEnabled(enabled)
@@ -1177,28 +1119,13 @@ class PdfEditorWindow(QMainWindow):
         for action in self.tool_group.actions():
             if action.isChecked():
                 return action.data()
-        return "highlight"
+        return "note"
 
     def _on_tool_action(self, action: QAction) -> None:
         if self.engine is None:
             return
-        tool = action.data()
-        if tool not in self._annot_colors:
-            # 便签：保持原逻辑
-            self.view.set_mode("annot")
-            self.view.set_annot_tool(tool)
-            return
-        # 批注工具：应用该工具最近选择的颜色
-        self.view.set_annot_color(tool, self._annot_colors[tool])
-        # 文本模式下如果已有选中文字，直接打批注；否则切到 annot 模式让用户框选
-        if self.view._mode == "text" and self.view.has_text_selection():
-            self.view.apply_selected(tool)
-            # 保持在 text 模式，方便继续编辑或再次选择
-            self.view.set_mode("text")
-            self.view.set_annot_tool(tool)
-        else:
-            self.view.set_mode("annot")
-            self.view.set_annot_tool(tool)
+        self.view.set_mode("annot")
+        self.view.set_annot_tool(action.data())
 
     # ---------------- OCR ----------------
     def _ocr_current(self) -> None:
